@@ -22,15 +22,30 @@ export const ChatDemonstrationSection = () => {
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<Message[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [chatError, setChatError] = useState<string | null>(null);
+    const dictionaryId = process.env.NEXT_PUBLIC_DICTIONARY_ID;
+    const isChatEnabled = process.env.NEXT_PUBLIC_ENABLE_CHAT === 'true';
 
     const handleSend = async (content: string) => {
         if (content.trim() && !demoQuestionAsked) {
+            if (!isChatEnabled) {
+                setChatError('Chat deshabilitado.');
+                return;
+            }
+            if (!dictionaryId) {
+                setChatError('No se encontró el diccionario. Vuelve atrás y selecciona uno.');
+                return;
+            }
             setDemoQuestionAsked(true); // Bloquear después de una pregunta
             const newMessage: Message = { role: 'user', content };
             setMessages(prev => [...prev, newMessage]);
             setIsLoading(true);
             try {
-                const response = await SendMessage(content);
+                const response = await SendMessage(dictionaryId, content);
+                if (response?.error) {
+                    setChatError(response.error);
+                    return;
+                }
                 if (response) {
                     const formattedResponse = response.parsedResponse;
                     const assistantMessage: Message = {
@@ -43,11 +58,10 @@ export const ChatDemonstrationSection = () => {
                         },
                     };
                     setMessages((prev) => [...prev, assistantMessage]);
-                } else {
-                    console.error("Response is undefined");
                 }
             } catch (error) {
                 console.error("Error fetching response:", error);
+                setChatError('No se pudo procesar la solicitud del chat.');
             } finally {
                 setIsLoading(false);
             }
@@ -76,12 +90,12 @@ export const ChatDemonstrationSection = () => {
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Escribe tu pregunta aquí..."
                                 className="flex-1 rounded-none rounded-l-md focus:border-d-green text-black focus:ring-0 focus:outline-none"
-                                disabled={demoQuestionAsked || isLoading}
+                                disabled={demoQuestionAsked || isLoading || !dictionaryId || !isChatEnabled}
                             />
                             <button
                                 type="submit"
                                 className="px-3 relative inline-flex items-center rounded-r-md bg-d-green"
-                                disabled={isLoading || demoQuestionAsked}
+                                disabled={isLoading || demoQuestionAsked || !dictionaryId || !isChatEnabled}
                             >
                                 {isLoading ?
                                     <div className='flex text-base text-white font-semibold items-center'>
@@ -97,6 +111,16 @@ export const ChatDemonstrationSection = () => {
                             </button>
                         </div>
                     </form>
+                    {!isChatEnabled && (
+                        <div className="mt-4 rounded-md border border-gray-300 bg-gray-50 px-4 py-3 text-gray-700">
+                            Chat deshabilitado.
+                        </div>
+                    )}
+                    {chatError && (
+                        <div className="mt-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-red-900">
+                            {chatError}
+                        </div>
+                    )}
                     {messages.length > 0 && !isLoading && (
                         <div className="mt-4 p-4 bg-white dark:bg-[#2D2D2D] rounded-md">
                             {messages
@@ -111,7 +135,7 @@ export const ChatDemonstrationSection = () => {
                                     </div>
                                 ))}
                             {demoQuestionAsked && !isLoading && (
-                                <Link href='/dictionary/chat' >
+                                <Link href={dictionaryId ? `/dictionary/${dictionaryId}/chat` : '/dictionary/chat'} >
                                     <button
                                         className="mt-4 flex items-center text-d-green-dark dark:text-d-green-light hover:underline"
                                     >

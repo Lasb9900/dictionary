@@ -26,7 +26,7 @@ export interface NewWorkSheetModalProps {
 export const NewWorkSheetModal = ({ onClose, initialData }: NewWorkSheetModalProps) => {
   const [editorSelection, setEditorSelection] = useState<string | null>(null);
   const [reviewerSelection, setReviewerSelection] = useState<string | null>(null);
-  const [workSheetType, setWorkSheetType] = useState<string>(initialData?.workSheetType || "author");
+  const [workSheetType, setWorkSheetType] = useState<string>(initialData?.workSheetType || "AuthorCard");
   const [loading, setLoading] = useState<boolean>(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const { data: session } = useSession();
@@ -87,7 +87,7 @@ export const NewWorkSheetModal = ({ onClose, initialData }: NewWorkSheetModalPro
           <Formik
             initialValues={{
               title: initialData?.title || "",
-              workSheetType: initialData?.workSheetType || "author",
+              workSheetType: initialData?.workSheetType || "AuthorCard",
               editors: initialData?.editors || [],
               reviewers: initialData?.reviewers || [],
             }}

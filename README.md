@@ -16,6 +16,33 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## Backend local configuration
+
+1. Create an `.env.local` file using the sample:
+
+```bash
+cp .env.example .env.local
+```
+
+2. Ensure the backend is running on `http://localhost:8080` and includes the `/api` prefix.
+3. Configure the required frontend environment variables:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+NEXT_PUBLIC_NEWS_API_KEY=
+NEXT_PUBLIC_ENABLE_CHAT=false
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=
+USE_INGESTION=false
+```
+
+4. Start the frontend with `npm run dev` and navigate to `http://localhost:3000`.
+5. Verify backend connectivity by hitting:
+
+```
+GET ${NEXT_PUBLIC_API_BASE_URL}/cards
+```
+
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.

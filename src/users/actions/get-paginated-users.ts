@@ -1,6 +1,6 @@
 'use server'
 
-
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 
@@ -15,26 +15,21 @@ export const getUsers = async (excludedUser: string | undefined) => {
             };
         }
 
-        const response = await fetch(process.env.API_URL + '/users', {
+        const response = await apiFetch('/users', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ excludedUser }),
+            body: { excludedUser },
         });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'Error al obtener los usuarios',
+                message: response.message || 'Error al obtener los usuarios',
             };
         }
 
-        const data = await response.json();
-
         return {
             ok: true,
-            data: data,
+            data: response.data,
         };
     } catch (error) {
         console.error('Error fetching users:', error);

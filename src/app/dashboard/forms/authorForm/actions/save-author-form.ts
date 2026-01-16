@@ -1,6 +1,8 @@
 'use server'
 
-
+import { ingestionSave } from '@/src/actions/ingestion';
+import { apiFetch } from '@/src/lib/api';
+import { USE_INGESTION } from '@/src/lib/flags';
 import { AuthorFormValues } from "@/src/forms/components/AuthorFormComponents/interfaces/AuthorForm";
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
@@ -18,21 +20,18 @@ export const saveAuthorForm = async (payload: AuthorFormValues, authorId: string
     // }
 
     try {
-        const response = await fetch(process.env.API_URL + `/cards/save/author/${authorId}`, {
-            method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...payload }),
-        });
-
-        const responseData = await response.json();
+        const response = USE_INGESTION
+            ? await ingestionSave('author', authorId, payload)
+            : await apiFetch(`/cards/save/author/${authorId}`, {
+                method: 'PUT',
+                body: { ...payload },
+            });
 
         if (!response.ok) {
-            console.error('Error al guardar el formulario de autor:', responseData);
+            console.error('Error al guardar el formulario de autor:', response);
             return {
                 ok: false,
-                message: responseData.message || 'No se pudo guardar el formulario del autor',
+                message: response.message || 'No se pudo guardar el formulario del autor',
             };
         }
 

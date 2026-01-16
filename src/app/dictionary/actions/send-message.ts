@@ -1,3 +1,5 @@
+import { apiFetch } from '@/src/lib/api';
+
 // Tipo común para multimedia
 interface Multimedia {
     images: { link: string; description: string }[];
@@ -59,32 +61,44 @@ interface ApiResponse {
     result: BiographyResponse | ListResponse | ComparisonResponse | MultimediaResponse | Model | Summary;
 }
 
-export const SendMessage = async (question: string | string[]) => {
+export const SendMessage = async (dictionaryId: string | undefined, question: string | string[]) => {
+    if (process.env.NEXT_PUBLIC_ENABLE_CHAT !== 'true') {
+        return {
+            error: 'Chat deshabilitado.',
+        };
+    }
+
+    if (!dictionaryId) {
+        return {
+            error: 'No se encontró el diccionario. Vuelve atrás y selecciona uno.',
+        };
+    }
+
     try {
-        const response = await fetch(process.env.NEXT_PUBLIC_MODEL_API_URL + '/ask', {
+        const response = await apiFetch<ApiResponse>(`/dictionary/${dictionaryId}/ask`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ question }),
+            body: { question },
         });
-        // Convertimos la respuesta a JSON
-        const responseData = await response.json();
 
         if (!response.ok) {
-            console.error('Error al obtener los datos del agrupamiento:', responseData);
-            return;
+            const fallbackMessage =
+                response.status === 404
+                    ? 'Chat no disponible: backend no expone endpoint /dictionary/:id/ask'
+                    : response.message;
+            return { error: fallbackMessage };
         }
 
         // Procesamos la respuesta antes de devolverla
-        const parsedResponse = handleApiResponse(responseData);
+        const parsedResponse = handleApiResponse(response.data);
 
         return {
             parsedResponse,
         };
     } catch (error) {
         console.error('Error al realizar la solicitud:', error);
-        return;
+        return {
+            error: 'No se pudo procesar la solicitud del chat.',
+        };
     }
 };
 
@@ -187,4 +201,3 @@ const handleApiResponse = (responseData: any): ApiResponse => {
         throw new Error('Error al procesar la respuesta de la API');
     }
 };
-

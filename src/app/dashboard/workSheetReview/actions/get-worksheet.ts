@@ -1,29 +1,23 @@
 'use server'
 
-
+import { apiFetch } from '@/src/lib/api';
 
 export const GetWorksheet = async (id: string) => {
     try {
-
-        const response = await fetch(process.env.API_URL + `/cards/texts/${id}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+        const response = await apiFetch(`/cards/texts/${id}`, {
+            method: 'GET',
+        });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'Error al obtener las fichas',
+                message: response.message || 'Error al obtener las fichas',
             };
         }
 
-        const data = await response.json();
-
         return {
             ok: true,
-            data,  // Devolvemos los datos en una clave `data`
+            data: response.data,  // Devolvemos los datos en una clave `data`
         };
     } catch (error) {
         console.error('Error fetching users:', error);

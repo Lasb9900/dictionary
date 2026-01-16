@@ -38,6 +38,8 @@ export const Sidebar = ({ sendStatusSidebar, statusSidebar }: Props) => {
 
     const { data: session } = useSession();
     const isAdmin = session?.user?.roles.includes('admin');
+    const dictionaryId = process.env.NEXT_PUBLIC_DICTIONARY_ID;
+    const dictionaryPath = dictionaryId ? `/dictionary/${dictionaryId}/chat` : '/dictionary/chat';
     const isEditor = session?.user?.roles.includes('editor');
     const isEdOrRev = session?.user?.roles.includes('editor') || session?.user?.roles.includes('reviewer');
     const isReviewer = session?.user?.roles.includes('reviewer');
@@ -69,7 +71,7 @@ export const Sidebar = ({ sendStatusSidebar, statusSidebar }: Props) => {
             icon: <BookOpenIcon />,
         },
         {
-            path: '/dictionary/chat',
+            path: dictionaryPath,
             title: 'Buscador',
             icon: <DocumentMagnifyingGlassIcon />,
         },
@@ -276,4 +278,3 @@ export const Sidebar = ({ sendStatusSidebar, statusSidebar }: Props) => {
         </>
     )
 }
-

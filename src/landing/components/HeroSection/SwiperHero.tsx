@@ -139,7 +139,7 @@ export const SwiperHero = () => {
                 </p>
                 <div className="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
                     <div className="rounded-md shadow">
-                        <Link href={'/dictionary/chat'}>
+                        <Link href={process.env.NEXT_PUBLIC_DICTIONARY_ID ? `/dictionary/${process.env.NEXT_PUBLIC_DICTIONARY_ID}/chat` : '/dictionary/chat'}>
                             <button className="w-full text-white flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md bg-d-blue transition-all hover:scale-105 hover:shadow-2xl md:py-4 md:text-lg md:px-10">
                                 Comenzar ahora
                             </button>
@@ -160,4 +160,3 @@ export const SwiperHero = () => {
 
     );
 }
-

@@ -1,16 +1,27 @@
 'use server'
 
+type NewsResult = {
+    items: any[];
+    error?: string;
+};
 
-export async function getNews() {
-    const apiKey = process.env.NEWS_API_KEY; // Asegúrate de que la clave API esté en las variables de entorno
+export async function getNews(): Promise<NewsResult> {
+    const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY;
+
+    if (!apiKey) {
+        return { items: [], error: 'Sin noticias' };
+    }
+
     const url = `https://newsapi.org/v2/everything?qInTitle=literatura&language=es&sortBy=relevancy&apiKey=${apiKey}`;
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            next: { revalidate: 3600 },
+        });
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || 'Error al obtener las noticias');
+            return { items: [], error: 'Sin noticias' };
         }
 
         // Filtrar las noticias por fuentes específicas y palabras clave
@@ -21,9 +32,8 @@ export async function getNews() {
             article.description.includes("Venezuela")
         );
 
-        return filteredNews; // Devuelve los artículos filtrados
+        return { items: filteredNews };
     } catch (error: any) {
-        console.error('Error al obtener las noticias:', error.message);
-        return []; // Retorna un array vacío en caso de error
+        return { items: [], error: 'Sin noticias' };
     }
 }

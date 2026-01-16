@@ -13,6 +13,7 @@ import { NewWorkSheetModal } from "../NewWorkSheetModal/NewWorkSheetModal"; // I
 import { useState } from "react";
 import DeleteModal from "@/src/users/components/DeleteModal/DeleteCardModal";
 import { deleteCard } from "../../actions/delete-worksheet";
+import { toWorksheetStatusSlug } from '@/src/lib/worksheet-status';
 import {
     Menu,
     MenuButton,
@@ -132,6 +133,7 @@ export const WorkSheetFile = ({
     };
 
     const handleClickActions = (workSheetType: string, action: string, id: string, status: string) => {
+        const statusSlug = toWorksheetStatusSlug(status);
         // Manejando acciones de tipo 'formulario'
         if (action === '02') {
             switch (workSheetType) {
@@ -153,16 +155,16 @@ export const WorkSheetFile = ({
         } else if (action === '01') {
             switch (workSheetType) {
                 case 'AuthorCard':
-                    router.push(`/dashboard/workSheetReview/${id}/${status}/authorReview`);
+                    router.push(`/dashboard/workSheetReview/${id}/${statusSlug}/authorReview`);
                     break;
                 case 'AnthologyCard':
-                    router.push(`/dashboard/workSheetReview/${id}/${status}/anthologyReview`);
+                    router.push(`/dashboard/workSheetReview/${id}/${statusSlug}/anthologyReview`);
                     break;
                 case 'GroupingCard':
-                    router.push(`/dashboard/workSheetReview/${id}/${status}/groupingReview`);
+                    router.push(`/dashboard/workSheetReview/${id}/${statusSlug}/groupingReview`);
                     break;
                 case 'MagazineCard':
-                    router.push(`/dashboard/workSheetReview/${id}/${status}/magazineReview`);
+                    router.push(`/dashboard/workSheetReview/${id}/${statusSlug}/magazineReview`);
                     break;
                 default:
                     console.error('Tipo de ficha no soportado para formularios');

@@ -33,10 +33,10 @@ const redVariant = {
 }
 
 const statusVariants: { [key: string]: typeof greenVariant } = {
-    'Validated': greenVariant,
-    'Pending Review': yellowVariant,
-    'Pending Edit': blueVariant,
-    'Rejected': redVariant,
+    'validated': greenVariant,
+    'pending-review': yellowVariant,
+    'pending-edit': blueVariant,
+    'rejected': redVariant,
 };
 
 export default function FilteredWorksheets({ data }: { data: any }) {
@@ -65,7 +65,6 @@ export default function FilteredWorksheets({ data }: { data: any }) {
 
     const Items = filteredItems.map((item: any) => {
         const variant = statusVariants[item.status] || {};
-        console.log(item.status)
         return {
             workSheetObservation: item.observation,
             workSheetStatus: item.status,
@@ -106,4 +105,3 @@ export default function FilteredWorksheets({ data }: { data: any }) {
         </div>
     );
 }
-

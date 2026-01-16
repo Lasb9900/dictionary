@@ -1,6 +1,7 @@
 'use server'
 
-
+import { apiFetch } from '@/src/lib/api';
+import { normalizeWorksheetStatus } from '@/src/lib/worksheet-status';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 
@@ -15,32 +16,24 @@ export const getAllValidated = async (userId?: string) => {
             };
         }
 
-        const response = !userId ? 
-            await fetch(process.env.API_URL + '/cards/status/validated', {
+        const response = !userId
+            ? await apiFetch('/cards/status/validated', {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            }) :
-            await fetch(process.env.API_URL + `/cards/user/${userId}/validated`, {
+            })
+            : await apiFetch(`/cards/user/${userId}/validated`, {
                 method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
             });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'Error al obtener las fichas',
+                message: response.message || 'Error al obtener las fichas',
             };
         }
 
-        const data = await response.json();
-
         return {
             ok: true,
-            data: data,
+            data: normalizeWorksheetStatus(response.data),
         };
     } catch (error) {
         console.error('Error fetching users:', error);
