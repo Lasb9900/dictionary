@@ -1,8 +1,13 @@
 export type ApiResult<T> =
     | { ok: true; data: T }
-    | { ok: false; message: string };
+    | { ok: false; message: string; status?: number };
 
-const API_BASE_URL = process.env.API_BASE_URL?.replace(/\/$/, '') ?? '';
+const BASE_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ?? '';
+
+export const apiUrl = (path: string) => {
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${BASE_API_URL}${normalizedPath}`;
+};
 
 const isFormData = (value: unknown): value is FormData =>
     typeof FormData !== 'undefined' && value instanceof FormData;
@@ -11,8 +16,15 @@ export const apiFetch = async <T>(
     path: string,
     options: RequestInit = {}
 ): Promise<ApiResult<T>> => {
-    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    const url = `${API_BASE_URL}${normalizedPath}`;
+    if (!BASE_API_URL) {
+        return {
+            ok: false,
+            message:
+                'Falta configurar NEXT_PUBLIC_API_BASE_URL para comunicarse con el backend.',
+        };
+    }
+
+    const url = apiUrl(path);
     const headers = {
         'Content-Type': 'application/json',
         ...(options.headers ?? {}),
@@ -38,6 +50,7 @@ export const apiFetch = async <T>(
     if (!response.ok) {
         return {
             ok: false,
+            status: response.status,
             message:
                 (responseData as { message?: string } | null)?.message ||
                 response.statusText ||
