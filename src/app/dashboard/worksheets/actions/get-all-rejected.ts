@@ -1,5 +1,6 @@
 'use server'
 
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 
@@ -14,25 +15,20 @@ export const getAllRejectedSheets = async () => {
             };
         }
 
-        const response = await fetch(process.env.API_URL + '/cards/rejected', {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-        })
+        const response = await apiFetch('/cards/rejected', {
+            method: 'GET',
+        });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'Error al obtener las fichas',
+                message: response.message || 'Error al obtener las fichas',
             };
         }
 
-        const data = await response.json();
-
         return {
             ok: true,
-            data: data,
+            data: response.data,
         };
     } catch (error) {
         console.error('Error fetching users:', error);

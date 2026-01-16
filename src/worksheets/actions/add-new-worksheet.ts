@@ -1,5 +1,8 @@
 'use server'
 
+import { ingestionCreateWorksheet } from '@/src/actions/ingestion';
+import { apiFetch } from '@/src/lib/api';
+import { USE_INGESTION } from '@/src/lib/flags';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -24,21 +27,18 @@ export const addNewWorksheet = async (payload: AddNewWorksheetPayload) => {
     }
 
     try {
-        const response = await fetch(process.env.API_URL + `/cards`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...payload }),
-        });
-
-        const responseData = await response.json();
+        const response = USE_INGESTION
+            ? await ingestionCreateWorksheet(payload)
+            : await apiFetch('/cards', {
+                method: 'POST',
+                body: { ...payload },
+            });
 
         if (!response.ok) {
-            console.error('Error creating worksheet:', responseData);
+            console.error('Error creating worksheet:', response);
             return {
                 ok: false,
-                message: responseData.message || 'No se pudo crear la ficha',
+                message: response.message || 'No se pudo crear la ficha',
             };
         }
 

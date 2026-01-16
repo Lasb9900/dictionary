@@ -1,6 +1,6 @@
 'use server';
 
-
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -19,26 +19,20 @@ export const getMagazineForm = async (magazineId: string | string[]) => {
 
     try {
         // Realizar la solicitud GET para obtener los datos de agrupamiento
-        const response = await fetch(process.env.API_URL + `/cards/magazine/${magazineId}`, {
-            method: 'GET', // Cambiado a GET
-            headers: {
-                'Content-Type': 'application/json',
-            },
+        const response = await apiFetch(`/cards/magazine/${magazineId}`, {
+            method: 'GET',
         });
 
-        const responseData = await response.json();
-
         if (!response.ok) {
-            console.error('Error al obtener los datos del agrupamiento:', responseData);
-            return;
-            // return {
-            //     ok: false,
-            //     message: responseData.message || 'No se pudo obtener los datos del agrupamiento',
-            // };
+            console.error('Error al obtener los datos del agrupamiento:', response);
+            return {
+                ok: false,
+                message: response.message || 'No se pudo obtener los datos del agrupamiento',
+            };
         }
         revalidatePath(`/dashboard/forms/magazineForm/${magazineId}/magazineDetails`);
         return {
-            responseData, // Devolvemos los datos obtenidos
+            responseData: response.data, // Devolvemos los datos obtenidos
         };
     } catch (error) {
         console.error('Error al realizar la solicitud:', error);

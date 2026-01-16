@@ -1,6 +1,6 @@
 'use server'
 
-
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 
@@ -17,21 +17,16 @@ export const RejectWorksheet = async (payload: string, id: string | string[]) =>
     // }
 
     try {
-        const response = await fetch(process.env.API_URL + `/cards/reject/${id}`, {
+        const response = await apiFetch(`/cards/reject/${id}`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ observation: payload }),
+            body: { observation: payload },
         });
 
-        const responseData = await response.json();
-
-        if (!response) {
-            console.error('Error al guardar el formulario de autor:', responseData);
+        if (!response.ok) {
+            console.error('Error al guardar el formulario de autor:', response);
             return {
                 ok: false,
-                message: responseData.message || 'No se pudo guardar el formulario del autor',
+                message: response.message || 'No se pudo guardar el formulario del autor',
             };
         }
 

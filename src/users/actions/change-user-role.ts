@@ -1,5 +1,6 @@
 'use server'
 
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -16,18 +17,15 @@ export const changeUserRole = async( userId: string | undefined, roles: string[]
     }
 
     try{
-        const response = await fetch(process.env.API_URL + `/users/assign-roles`, {
+        const response = await apiFetch(`/users/assign-roles`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ userId, roles }),
+            body: { userId, roles },
         });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'No se pudo actualizar el rol',
+                message: response.message || 'No se pudo actualizar el rol',
             };
         }
 

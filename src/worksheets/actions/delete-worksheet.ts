@@ -1,5 +1,6 @@
 'use server'
 
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -15,27 +16,22 @@ export const deleteCard = async (cardId: string | undefined) => {
             };
         }
 
-        const response = await fetch(process.env.API_URL + `/cards/${cardId}`, {
+        const response = await apiFetch(`/cards/${cardId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'Error al eliminar la ficha',
+                message: response.message || 'Error al eliminar la ficha',
             };
         }
-
-        const data = await response.json();
 
         revalidatePath('/dashboard/worksheets/validatedSheets');
 
         return {
             ok: true,
-            data: data,
+            data: response.data,
         };
     } catch (error) {
         console.error('Error fetching cards:', error);

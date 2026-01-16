@@ -82,7 +82,7 @@ export default function MagazineFormLayout({ children }: { children: React.React
             city: Yup.string()
                 .max(100, 'La ciudad no puede superar los 100 caracteres')
                 .nullable(),
-            printing: Yup.string()
+            printingHouse: Yup.string()
                 .max(100, 'La impresión no puede superar los 100 caracteres')
                 .nullable(),
             publisher: Yup.string()
