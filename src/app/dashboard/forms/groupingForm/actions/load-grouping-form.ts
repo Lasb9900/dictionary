@@ -1,5 +1,6 @@
 'use server'
 
+import { apiFetch } from '@/src/lib/api';
 import { GroupingFormValues } from "@/src/forms/components/GroupingFormComponent/interfaces/GroupingForm";
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
@@ -17,21 +18,16 @@ export const loadGroupingForm = async (payload: GroupingFormValues, groupingId: 
     // }
 
     try {
-        const response = await fetch(process.env.API_URL + `/cards/update/grouping/${groupingId}`, {
+        const response = await apiFetch(`/cards/update/grouping/${groupingId}`, {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...payload }),
+            body: { ...payload },
         });
 
-        const responseData = await response.json();
-
         if (!response.ok) {
-            console.error('Error al guardar el formulario de autor:', responseData);
+            console.error('Error al guardar el formulario de autor:', response);
             return {
                 ok: false,
-                message: responseData.message || 'No se pudo guardar el formulario del autor',
+                message: response.message || 'No se pudo guardar el formulario del autor',
             };
         }
 

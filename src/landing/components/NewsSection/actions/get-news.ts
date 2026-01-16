@@ -1,16 +1,33 @@
 'use server'
 
+let hasLoggedNewsError = false;
 
-export async function getNews() {
-    const apiKey = process.env.NEWS_API_KEY; // Asegúrate de que la clave API esté en las variables de entorno
+type NewsResult = {
+    items: any[];
+    error?: string;
+};
+
+export async function getNews(): Promise<NewsResult> {
+    const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY;
+
+    if (!apiKey) {
+        return { items: [], error: 'Noticias no disponibles' };
+    }
+
     const url = `https://newsapi.org/v2/everything?qInTitle=literatura&language=es&sortBy=relevancy&apiKey=${apiKey}`;
 
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, {
+            next: { revalidate: 3600 },
+        });
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(data.message || 'Error al obtener las noticias');
+            if (!hasLoggedNewsError && process.env.NODE_ENV !== 'production') {
+                console.warn('Error al obtener las noticias:', data.message || response.statusText);
+                hasLoggedNewsError = true;
+            }
+            return { items: [], error: 'Noticias no disponibles' };
         }
 
         // Filtrar las noticias por fuentes específicas y palabras clave
@@ -21,9 +38,12 @@ export async function getNews() {
             article.description.includes("Venezuela")
         );
 
-        return filteredNews; // Devuelve los artículos filtrados
+        return { items: filteredNews };
     } catch (error: any) {
-        console.error('Error al obtener las noticias:', error.message);
-        return []; // Retorna un array vacío en caso de error
+        if (!hasLoggedNewsError && process.env.NODE_ENV !== 'production') {
+            console.warn('Error al obtener las noticias:', error.message);
+            hasLoggedNewsError = true;
+        }
+        return { items: [], error: 'Noticias no disponibles' };
     }
 }

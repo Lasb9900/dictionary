@@ -1,5 +1,6 @@
 'use server'
 
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 
@@ -20,25 +21,20 @@ export const getUsersByRole = async ({ type, excludeIds = [] }: GetUsersByRolePr
     }
 
     try {
-        const response = await fetch(process.env.API_URL + `/users/find-by-role?type=${type}&excludeIds=${excludeIds.join(', ')}`, {
+        const response = await apiFetch(`/users/find-by-role?type=${type}&excludeIds=${excludeIds.join(', ')}`, {
             method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'No se pudo obtener los usuarios',
+                message: response.message || 'No se pudo obtener los usuarios',
             };
         }
 
-        const data = await response.json();
-
         return {
             ok: true,
-            data: data,
+            data: response.data,
         };
     } catch (error) {
         console.error('Error fetching users:', error);

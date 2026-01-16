@@ -1,5 +1,8 @@
 'use server'
 
+import { ingestionAutoReview, ingestionAutoUpload } from '@/src/actions/ingestion';
+import { apiFetch } from '@/src/lib/api';
+import { USE_INGESTION } from '@/src/lib/flags';
 import { AnthologyTextValues } from "@/src/worksheetsReview/interfaces/AnthologyWorkSheetReview";
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
@@ -16,38 +19,49 @@ export const ValidateAnthologyWorkSheet = async (payload: AnthologyTextValues, a
 
     try {
         console.log(payload)
-        const responseValidate = await fetch(process.env.API_URL + `/cards/save-texts/${anthologyId}`, {
-            method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...payload}),
-        });
+        if (USE_INGESTION) {
+            const responseReview = await ingestionAutoReview('anthology', anthologyId);
+            if (!responseReview.ok) {
+                console.error('Error al validar la ficha:', responseReview);
+                return {
+                    ok: false,
+                    message: responseReview.message || 'No se pudo validar la ficha',
+                };
+            }
 
-        const responseNeo4j = await fetch(process.env.API_URL + `/cards/upload/anthology/${anthologyId}`, {
-            method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-        });
+            const responseUpload = await ingestionAutoUpload('anthology', anthologyId);
+            if (!responseUpload.ok) {
+                console.error('Error al validar la ficha:', responseUpload);
+                return {
+                    ok: false,
+                    message: responseUpload.message || 'No se pudo validar la ficha',
+                };
+            }
+        } else {
+            const responseValidate = await apiFetch(`/cards/save-texts/${anthologyId}`, {
+                method: 'POST',
+                body: { ...payload },
+            });
 
-        const responseAuthor = await responseValidate.json();
-        const responseAuthorNeo4j = await responseNeo4j.json();
+            const responseNeo4j = await apiFetch(`/cards/upload/anthology/${anthologyId}`, {
+                method: 'PUT',
+            });
 
-        if (!responseAuthor || !responseAuthorNeo4j) {
-            console.error('Error al validar la ficha:', responseAuthor);
-            return {
-                ok: false,
-                message: responseAuthor.message || 'No se pudo validar la ficha',
-            };
-        }
+            if (!responseValidate.ok) {
+                console.error('Error al validar la ficha:', responseValidate);
+                return {
+                    ok: false,
+                    message: responseValidate.message || 'No se pudo validar la ficha',
+                };
+            }
 
-        if ( !responseAuthorNeo4j) {
-            console.error('Error al validar la ficha:', responseAuthorNeo4j);
-            return {
-                ok: false,
-                message: responseAuthorNeo4j.message || 'No se pudo validar la ficha',
-            };
+            if (!responseNeo4j.ok) {
+                console.error('Error al validar la ficha:', responseNeo4j);
+                return {
+                    ok: false,
+                    message: responseNeo4j.message || 'No se pudo validar la ficha',
+                };
+            }
         }
 
         revalidatePath('/dashboard/worksheets/validatedSheets');

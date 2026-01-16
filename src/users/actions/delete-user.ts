@@ -1,5 +1,6 @@
 'use server'
 
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -15,27 +16,22 @@ export const deleteUser = async (userId: string | undefined) => {
             };
         }
 
-        const response = await fetch(process.env.API_URL + `/users/${userId}`, {
+        const response = await apiFetch(`/users/${userId}`, {
             method: 'DELETE',
-            headers: {
-                'Content-Type': 'application/json',
-            },
         });
 
         if (!response.ok) {
             return {
                 ok: false,
-                message: 'Error al eliminar el usuario',
+                message: response.message || 'Error al eliminar el usuario',
             };
         }
-
-        const data = await response.json();
 
         revalidatePath('/dashboard/users');
 
         return {
             ok: true,
-            data: data,
+            data: response.data,
         };
     } catch (error) {
         console.error('Error fetching users:', error);

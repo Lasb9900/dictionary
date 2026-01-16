@@ -9,7 +9,6 @@ import ChatResponseDisplay from './ChatResponseDisplay';
 import { SendMessage } from '@/src/app/dictionary/actions/send-message';
 import { AlertProvider } from '@/src/users/context/AlertContext';
 import { useSession } from 'next-auth/react';
-import { link } from 'fs';
 import Link from 'next/link';
 
 // Define el tipo para cada mensaje
@@ -24,7 +23,11 @@ interface Message {
     }
 }
 
-export default function Chat() {
+interface ChatProps {
+    dictionaryId?: string;
+}
+
+export default function Chat({ dictionaryId }: ChatProps) {
 
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
@@ -33,6 +36,7 @@ export default function Chat() {
     const [loading, setLoading] = useState(false);
     const { data: session } = useSession();
     const [fichasPath, setFichasPath] = useState('');
+    const [chatError, setChatError] = useState<string | null>(null);
     const [name, setName] = useState('Investigador')
     const prueba = "json\n{\n  \"title\": \"Teresa Coraspe\",\n  \"text\": \"Teresa Coraspe vivió en Ciudad Bolívar durante la segunda mitad del siglo XX y la primera del siglo XXI.\",\n  \"multimedia\": {\n    \"images\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa \"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Tereszxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz xxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxx xxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxx xxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxx xa en su casa\"\n      }\n    ],\n    \"videos\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Entrevista a Teresa Coraspe sobre su obra literaria\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Documental sobre la vida de Teresa Coraspe\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Conferencia de Teresa sobre poesía en Ciudad Bolívar\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Evento en el cual Teresa discute sus escritos\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Teresa hablando sobre los desafíos de ser una autora en su tiempo\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Video homenaje a Teresa y su legado literario\"\n      }\n    ],\n    \"audios\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/ysuegjov5yxq8nik2yh1.ogg\",\n        \"description\": \"Entrevista sobre la vida personal de Teresa Coraspe\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/dmhvuwri2p9fhzlhs1kr.ogg\",\n        \"description\": \"Teresa leyendo un poema de su autoría\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/e0cfvuttkknxcqitp2js.ogg\",\n        \"description\": \"Discurso de Teresa sobre la importancia de la poesía en la sociedad\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/bq9lme77hwablsngrief.ogg\",\n        \"description\": \"Reflexión sobre la vida de los escritores de su época\"\n      }\n    ],\n    \"documents\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1728150241/Dictionary/Authors/fi7lh5jkdgjvwo6vjutu.pdf\",\n        \"description\": \"Biografía de Teresa Coraspe en formato PDF\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728150348/Dictionary/Authors/eyrddmcg9ynjawnzt3qi.docx\",\n        \"description\": \"Manuscrito de Teresa Coraspe en formato Word\"\n      }\n    ]\n  }\n}\n";
 
@@ -367,13 +371,21 @@ export default function Chat() {
 
     const handleSend = async (content: string) => {
         if (content.trim()) {
+            if (!dictionaryId) {
+                setChatError('No se encontró el diccionario. Vuelve atrás y selecciona uno.');
+                return;
+            }
             const newMessage: Message = { role: 'user', content };
             setMessages(prev => [...prev, newMessage]);
             setInput('');
             setLoading(true); // Inicia el estado de carga
             // Respuesta del servidor
             try {
-                const response = await SendMessage(content);
+                const response = await SendMessage(dictionaryId, content);
+                if (response?.error) {
+                    setChatError(response.error);
+                    return;
+                }
                 if (response) {
                     const formattedResponse = response.parsedResponse;
                     const assistantMessage: Message = {
@@ -386,11 +398,10 @@ export default function Chat() {
                         },
                     };
                     setMessages((prev) => [...prev, assistantMessage]);
-                } else {
-                    console.error("Response is undefined");
                 }
             } catch (error) {
                 console.error("Error fetching response:", error);
+                setChatError('No se pudo procesar la solicitud del chat.');
             } finally {
                 setLoading(false);
             }
@@ -536,6 +547,16 @@ export default function Chat() {
                 {/* Select Theme */}
                 <div className="flex-1 overflow-y-auto">
                     <div className="max-w-[800px] mx-auto w-full h-full">
+                        {!dictionaryId && (
+                            <div className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+                                No se encontró el diccionario. Vuelve atrás y selecciona uno.
+                            </div>
+                        )}
+                        {chatError && (
+                            <div className="mt-4 rounded-md border border-red-300 bg-red-50 px-4 py-3 text-red-900">
+                                {chatError}
+                            </div>
+                        )}
                         {messages.length === 0 ? (
                             <div className="flex flex-col items-center justify-start h-full max-sm:mx-3">
                                 <h1 className="text-4xl font-bold mb-4">
@@ -601,10 +622,12 @@ export default function Chat() {
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Escribe tu mensaje aquí..."
                                 className="w-full h-14 pl-6 pr-12 rounded-full bg-white dark:bg-[#333333]  dark:placeholder:text-[#B3B3B3] text-gray-900 dark:text-[#EAEAEA] border-0 dark:ring-[#4A4A4A] ring-1 ring-inset ring-gray-300"
+                                disabled={loading || !dictionaryId}
                             />
                             <button
                                 type="submit"
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-transparent hover:bg-transparent p-2"
+                                disabled={loading || !dictionaryId}
                             >
                                 <Send className="h-5 w-5 text-gray-600 hover:text-gray-800 dark:text-[#B3B3B3] dark:hover:text-[#EAEAEA]" />
                                 <span className="sr-only">Enviar</span>

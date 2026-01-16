@@ -1,6 +1,6 @@
 'use server'
 
-
+import { apiFetch } from '@/src/lib/api';
 import { MagazineFormValues } from "@/src/forms/components/MagazineFormComponents/interfaces/MagazineForm";
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
@@ -18,21 +18,16 @@ export const loadMagazineForm = async (payload: MagazineFormValues, magazineId: 
     // }
 
     try {
-        const response = await fetch(process.env.API_URL + `/cards/update/magazine/${magazineId}`, {
+        const response = await apiFetch(`/cards/update/magazine/${magazineId}`, {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...payload }),
+            body: { ...payload },
         });
 
-        const responseData = await response.json();
-
         if (!response.ok) {
-            console.error('Error al guardar el formulario de autor:', responseData);
+            console.error('Error al guardar el formulario de autor:', response);
             return {
                 ok: false,
-                message: responseData.message || 'No se pudo guardar el formulario del autor',
+                message: response.message || 'No se pudo guardar el formulario del autor',
             };
         }
 

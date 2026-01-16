@@ -6,6 +6,7 @@ import { getNews } from "./actions/get-news";
 
 const News = () => {
     const [newsItems, setNewsItems] = useState<any[]>([]);
+    const [newsUnavailable, setNewsUnavailable] = useState(false);
 
     const customNews = {
         title: "LetraScopio: Próximo Lanzamiento con Innovación en Literatura e Inteligencia Artificial",
@@ -23,11 +24,13 @@ const News = () => {
         try {
             // Llama a la server action para obtener las noticias filtradas
             const fetchedNews = await getNews();
+            setNewsUnavailable(Boolean(fetchedNews.error));
 
             // Combina la noticia personalizada con las noticias obtenidas
-            setNewsItems([customNews, ...fetchedNews]);
+            setNewsItems([customNews, ...fetchedNews.items]);
         } catch (error) {
             console.error('Error al obtener las noticias:', error);
+            setNewsUnavailable(true);
         }
     };
 
@@ -45,6 +48,11 @@ const News = () => {
                 <p className="mt-4 max-w-2xl text-xl text-gray-500 dark:text-gray-300 lg:mx-auto">
                     Explora las últimas noticias y actualizaciones del mundo literario, junto con las novedades de nuestra plataforma.
                 </p>
+                {newsUnavailable && (
+                    <p className="mt-4 text-sm text-gray-500 dark:text-gray-300">
+                        Noticias no disponibles.
+                    </p>
+                )}
             </div>
 
             <div className="mt-10 grid gap-10 lg:grid-cols-3 lg:gap-x-8 lg:gap-y-10">

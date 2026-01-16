@@ -1,6 +1,6 @@
 'use server'
 
-
+import { apiFetch } from '@/src/lib/api';
 import { AnthologyFormValues } from "@/src/forms/components/AnthologyFormComponents/interfaces/AnthologyForm";
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
@@ -18,21 +18,16 @@ export const loadAnthologyForm = async (payload: AnthologyFormValues, anthologyI
     // }
 
     try {
-        const response = await fetch(process.env.API_URL + `/cards/update/anthology/${anthologyId}`, {
+        const response = await apiFetch(`/cards/update/anthology/${anthologyId}`, {
             method: 'PUT',
-            headers: { 
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...payload }),
+            body: { ...payload },
         });
 
-        const responseData = await response.json();
-
         if (!response.ok) {
-            console.error('Error al guardar el formulario de autor:', responseData);
+            console.error('Error al guardar el formulario de autor:', response);
             return {
                 ok: false,
-                message: responseData.message || 'No se pudo guardar el formulario del autor',
+                message: response.message || 'No se pudo guardar el formulario del autor',
             };
         }
 

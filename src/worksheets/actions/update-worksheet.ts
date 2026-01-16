@@ -1,6 +1,6 @@
 'use server'
 
-
+import { apiFetch } from '@/src/lib/api';
 import { authOptions } from "@/utils/config/authOptions";
 import { getServerSession } from "next-auth";
 import { revalidatePath } from "next/cache";
@@ -27,21 +27,16 @@ export const updateWorksheet = async (payload: UpdateWorksheetPayload) => {
     }
 
     try {
-        const response = await fetch(process.env.API_URL + `/cards/${id}`, {
+        const response = await apiFetch(`/cards/${id}`, {
             method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ ...body }),
+            body: { ...body },
         });
 
-        const responseData = await response.json();
-
         if (!response.ok) {
-            console.error('Error creating worksheet:', responseData);
+            console.error('Error creating worksheet:', response);
             return {
                 ok: false,
-                message: responseData.message || 'No se pudo actualizar la ficha',
+                message: response.message || 'No se pudo actualizar la ficha',
             };
         }
 
