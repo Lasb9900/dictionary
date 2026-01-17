@@ -1,3 +1,4 @@
+import { apiUrl } from "@/src/lib/api";
 import { clearStoredAuth, getStoredToken } from "@/src/lib/authStorage";
 
 export type ApiError = {
@@ -16,13 +17,6 @@ const isFormData = (value: unknown): value is FormData =>
 export type ApiClientOptions = RequestInit & {
   auth?: boolean;
   aiProvider?: string;
-};
-
-const API_BASE_URL = "http://localhost:8080";
-
-const apiUrl = (path: string) => {
-  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-  return `${API_BASE_URL}${normalizedPath}`;
 };
 
 export const apiClient = async <T>(
@@ -71,7 +65,7 @@ export const apiClient = async <T>(
   if (!response.ok) {
     if (response.status === 401 && typeof window !== "undefined") {
       clearStoredAuth();
-      window.location.href = "/cards/login";
+      window.location.href = "/ingestion/login";
     }
 
     return {

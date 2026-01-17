@@ -1,40 +1,41 @@
 export type StoredAuth = {
   token: string;
   userId: string;
+  email: string;
+  roles: string[];
 };
 
-const TOKEN_KEY = "token";
-const USER_ID_KEY = "userId";
+const AUTH_STORAGE_KEY = "dictionary-auth";
 
 export const getStoredAuth = (): StoredAuth | null => {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const token = window.localStorage.getItem(TOKEN_KEY);
-  const userId = window.localStorage.getItem(USER_ID_KEY);
-
-  if (!token || !userId) {
+  const raw = window.localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) {
     return null;
   }
 
-  return { token, userId };
+  try {
+    return JSON.parse(raw) as StoredAuth;
+  } catch {
+    return null;
+  }
 };
 
 export const setStoredAuth = (auth: StoredAuth) => {
   if (typeof window === "undefined") {
     return;
   }
-  window.localStorage.setItem(TOKEN_KEY, auth.token);
-  window.localStorage.setItem(USER_ID_KEY, auth.userId);
+  window.localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(auth));
 };
 
 export const clearStoredAuth = () => {
   if (typeof window === "undefined") {
     return;
   }
-  window.localStorage.removeItem(TOKEN_KEY);
-  window.localStorage.removeItem(USER_ID_KEY);
+  window.localStorage.removeItem(AUTH_STORAGE_KEY);
 };
 
 export const getStoredToken = () => getStoredAuth()?.token ?? null;
