@@ -16,6 +16,8 @@ interface Message {
     role: 'user' | 'assistant';
     content?: string; // Para mensajes simples
     query?: string;   // Para incluir la consulta del usuario
+    provider?: string;
+    sources?: Source[];
     data?: { // Almacena la respuesta estructurada
         type: 'biography' | 'comparison' | 'list' | 'similarity' | 'multimedia' | 'model' | 'summary';
         query: string;
@@ -23,13 +25,19 @@ interface Message {
     }
 }
 
-interface ChatProps {
-    dictionaryId?: string;
+interface Source {
+    cardId?: string;
+    cardType?: string;
+    title?: string;
+    url?: string;
 }
 
-export default function Chat({ dictionaryId }: ChatProps) {
+interface ChatProps {
+    cardId?: string;
+    cardType?: string;
+}
 
-    const resolvedDictionaryId = dictionaryId ?? process.env.NEXT_PUBLIC_DICTIONARY_ID;
+export default function Chat({ cardId, cardType }: ChatProps) {
     const isChatEnabled = process.env.NEXT_PUBLIC_ENABLE_CHAT !== 'false';
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -40,6 +48,7 @@ export default function Chat({ dictionaryId }: ChatProps) {
     const { data: session } = useSession();
     const [fichasPath, setFichasPath] = useState('');
     const [chatError, setChatError] = useState<string | null>(null);
+    const [useCardContext, setUseCardContext] = useState(Boolean(cardId));
     const [name, setName] = useState('Investigador')
     const prueba = "json\n{\n  \"title\": \"Teresa Coraspe\",\n  \"text\": \"Teresa Coraspe vivió en Ciudad Bolívar durante la segunda mitad del siglo XX y la primera del siglo XXI.\",\n  \"multimedia\": {\n    \"images\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa \"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Tereszxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz xxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxx xxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxx xxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxx xa en su casa\"\n      }\n    ],\n    \"videos\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Entrevista a Teresa Coraspe sobre su obra literaria\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Documental sobre la vida de Teresa Coraspe\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Conferencia de Teresa sobre poesía en Ciudad Bolívar\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Evento en el cual Teresa discute sus escritos\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Teresa hablando sobre los desafíos de ser una autora en su tiempo\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Video homenaje a Teresa y su legado literario\"\n      }\n    ],\n    \"audios\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/ysuegjov5yxq8nik2yh1.ogg\",\n        \"description\": \"Entrevista sobre la vida personal de Teresa Coraspe\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/dmhvuwri2p9fhzlhs1kr.ogg\",\n        \"description\": \"Teresa leyendo un poema de su autoría\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/e0cfvuttkknxcqitp2js.ogg\",\n        \"description\": \"Discurso de Teresa sobre la importancia de la poesía en la sociedad\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/bq9lme77hwablsngrief.ogg\",\n        \"description\": \"Reflexión sobre la vida de los escritores de su época\"\n      }\n    ],\n    \"documents\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1728150241/Dictionary/Authors/fi7lh5jkdgjvwo6vjutu.pdf\",\n        \"description\": \"Biografía de Teresa Coraspe en formato PDF\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728150348/Dictionary/Authors/eyrddmcg9ynjawnzt3qi.docx\",\n        \"description\": \"Manuscrito de Teresa Coraspe en formato Word\"\n      }\n    ]\n  }\n}\n";
 
@@ -378,10 +387,6 @@ export default function Chat({ dictionaryId }: ChatProps) {
                 setChatError('El chat está deshabilitado en este entorno.');
                 return;
             }
-            if (!resolvedDictionaryId) {
-                setChatError('No se encontró el diccionario. Vuelve atrás y selecciona uno.');
-                return;
-            }
             const newMessage: Message = { role: 'user', content };
             setMessages(prev => [...prev, newMessage]);
             setInput('');
@@ -389,7 +394,11 @@ export default function Chat({ dictionaryId }: ChatProps) {
             setLoading(true); // Inicia el estado de carga
             // Respuesta del servidor
             try {
-                const response = await SendMessage(resolvedDictionaryId, content);
+                const response = await SendMessage({
+                    question: content,
+                    cardId: useCardContext ? cardId : undefined,
+                    cardType: useCardContext ? cardType : undefined,
+                });
                 if (response?.error) {
                     setChatError(response.error);
                     return;
@@ -399,6 +408,8 @@ export default function Chat({ dictionaryId }: ChatProps) {
                     const assistantMessage: Message = {
                         role: 'assistant',
                         query: formattedResponse.query,
+                        provider: formattedResponse.provider,
+                        sources: formattedResponse.sources,
                         data: {
                             type: formattedResponse.type,
                             query: formattedResponse.query,
@@ -458,6 +469,28 @@ export default function Chat({ dictionaryId }: ChatProps) {
     ];
 
     const [darkMode, setDarkMode] = useState(false);
+
+    const hasCardContext = Boolean(cardId);
+
+    const resolveSourceHref = (source: Source) => {
+        if (source.url) return source.url;
+        if (!source.cardId) return '/dashboard/worksheets/sheetsToComplete';
+        switch (source.cardType) {
+            case 'AuthorCard':
+                return `/dashboard/forms/authorForm/${source.cardId}/authorDetails`;
+            case 'AnthologyCard':
+                return `/dashboard/forms/anthologyForm/${source.cardId}/anthologyDetails`;
+            case 'GroupingCard':
+                return `/dashboard/forms/groupingForm/${source.cardId}/groupingDetails`;
+            case 'MagazineCard':
+                return `/dashboard/forms/magazineForm/${source.cardId}/magazineDetails`;
+            default:
+                return `/dashboard/worksheets/sheetsToComplete`;
+        }
+    };
+
+    const resolveSourceLabel = (source: Source, index: number) =>
+        source.title || source.cardId || `Fuente ${index + 1}`;
 
     const toggleTheme = () => {
         setTheme(theme === 'light' ? 'dark' : 'light')
@@ -555,11 +588,6 @@ export default function Chat({ dictionaryId }: ChatProps) {
                 {/* Select Theme */}
                 <div className="flex-1 overflow-y-auto">
                     <div className="max-w-[800px] mx-auto w-full h-full">
-                        {!resolvedDictionaryId && (
-                            <div className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
-                                El chat está deshabilitado en este entorno.
-                            </div>
-                        )}
                         {!isChatEnabled && (
                             <div className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
                                 El chat está deshabilitado en este entorno.
@@ -613,7 +641,33 @@ export default function Chat({ dictionaryId }: ChatProps) {
                                             {message.role === 'user' ? (
                                                 <span className='break-words'>{message.content}</span> // Muestra el contenido del mensaje del usuario
                                             ) : (
-                                                message.data && <ChatResponseDisplay data={message.data} /> // Para la respuesta del asistente
+                                                <>
+                                                    {message.provider && (
+                                                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                                            Proveedor: {message.provider}
+                                                        </p>
+                                                    )}
+                                                    {message.data && <ChatResponseDisplay data={message.data} />}
+                                                    {message.sources && message.sources.length > 0 && (
+                                                        <div className="mt-4 rounded-md border border-gray-200 dark:border-gray-700 p-3">
+                                                            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">
+                                                                Fuentes
+                                                            </p>
+                                                            <ul className="space-y-1">
+                                                                {message.sources.map((source, sourceIndex) => (
+                                                                    <li key={`${source.cardId ?? sourceIndex}`}>
+                                                                        <Link
+                                                                            className="text-sm text-d-blue hover:underline dark:text-d-yellow"
+                                                                            href={resolveSourceHref(source)}
+                                                                        >
+                                                                            {resolveSourceLabel(source, sourceIndex)}
+                                                                        </Link>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    )}
+                                                </>
                                             )}
                                         </div>
                                     </div>
@@ -629,18 +683,29 @@ export default function Chat({ dictionaryId }: ChatProps) {
                 </div>
                 <div className="p-4  dark:border-gray-700 bg-white dark:bg-[#2D2D2D]">
                     <div className="mb-5 max-w-[800px] mx-auto w-full ">
+                        {hasCardContext && (
+                            <label className="mb-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                                <input
+                                    type="checkbox"
+                                    checked={useCardContext}
+                                    onChange={(event) => setUseCardContext(event.target.checked)}
+                                    className="h-4 w-4 rounded border-gray-300 text-d-blue focus:ring-d-blue"
+                                />
+                                Usar contexto de la ficha actual
+                            </label>
+                        )}
                         <form onSubmit={(e) => { e.preventDefault(); handleSend(input); }} className="relative">
                             <input
                                 value={input}
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Escribe tu mensaje aquí..."
                                 className="w-full h-14 pl-6 pr-12 rounded-full bg-white dark:bg-[#333333]  dark:placeholder:text-[#B3B3B3] text-gray-900 dark:text-[#EAEAEA] border-0 dark:ring-[#4A4A4A] ring-1 ring-inset ring-gray-300"
-                                disabled={loading || !resolvedDictionaryId || !isChatEnabled}
+                                disabled={loading || !isChatEnabled}
                             />
                             <button
                                 type="submit"
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-transparent hover:bg-transparent p-2"
-                                disabled={loading || !resolvedDictionaryId || !isChatEnabled}
+                                disabled={loading || !isChatEnabled}
                             >
                                 <Send className="h-5 w-5 text-gray-600 hover:text-gray-800 dark:text-[#B3B3B3] dark:hover:text-[#EAEAEA]" />
                                 <span className="sr-only">Enviar</span>

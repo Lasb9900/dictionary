@@ -2,12 +2,17 @@
 import Chat from "@/src/dictionary/components/Chat";
 import { ThemeProvider } from "next-themes";
 
-export default function ChatPage() {
-    const dictionaryId = process.env.NEXT_PUBLIC_DICTIONARY_ID;
+interface ChatPageProps {
+    searchParams?: {
+        cardId?: string;
+        cardType?: string;
+    };
+}
 
+export default function ChatPage({ searchParams }: ChatPageProps) {
     return (
         <ThemeProvider attribute="class" defaultTheme="light">
-            <Chat dictionaryId={dictionaryId} />
+            <Chat cardId={searchParams?.cardId} cardType={searchParams?.cardType} />
         </ThemeProvider>
     );
 }
