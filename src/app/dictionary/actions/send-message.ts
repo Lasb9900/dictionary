@@ -47,11 +47,13 @@ interface SendMessagePayload {
   question: string | string[];
   cardId?: string;
   cardType?: string;
+  provider?: string;
 }
 
-export const SendMessage = async ({ question, cardId, cardType }: SendMessagePayload) => {
+export const SendMessage = async ({ question, cardId, cardType, provider }: SendMessagePayload) => {
   const response = await apiFetch<ApiResponse>('/dictionary/ask', {
     method: 'POST',
+    headers: provider ? { 'x-ai-provider': provider } : undefined,
     body: {
       question,
       cardId,
@@ -62,10 +64,10 @@ export const SendMessage = async ({ question, cardId, cardType }: SendMessagePay
   if (!response.ok) {
     const fallbackMessage =
       response.status === 404
-        ? 'Chat no disponible: backend no expone endpoint /dictionary/:id/ask'
+        ? 'Chat no disponible: backend no expone endpoint /dictionary/ask'
         : response.status === 401
           ? 'Unauthorized (401): el backend rechazó el token. Vuelve a iniciar sesión.'
-          : response.message.includes('NEXT_PUBLIC_API_BASE_URL')
+          : response.message.includes('NEXT_PUBLIC_API_URL')
             ? response.message
             : 'No se pudo procesar la solicitud del chat';
 

@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { WorkSheetFile } from "@/src/worksheets/componentes/WorkSheetFile/WorkSheetFile";
 import { useWorksheetsContext } from "@/src/worksheets/context/WorkSheetsContext";
 import Pagination from "@/src/users/components/Pagination/Pagination";
+import AiProviderToggle from "@/src/components/AiProviderToggle";
 
 const greenVariant = {
     buttonBackground: 'bg-d-green-light-button',
@@ -65,7 +66,6 @@ export default function FilteredWorksheets({ data }: { data: any }) {
 
     const Items = filteredItems.map((item: any) => {
         const variant = statusVariants[item.status] || {};
-        console.log(item.status)
         return {
             workSheetObservation: item.observation,
             workSheetStatus: item.status,
@@ -93,6 +93,9 @@ export default function FilteredWorksheets({ data }: { data: any }) {
 
     return (
         <div className="flex flex-col sm:gap-4 xl:gap-0  mb-20">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <AiProviderToggle />
+            </div>
             {
                 currentWorksheets.map((item: any) => (
                     <WorkSheetFile key={item.workSheetName} {...item} />
@@ -106,4 +109,3 @@ export default function FilteredWorksheets({ data }: { data: any }) {
         </div>
     );
 }
-
