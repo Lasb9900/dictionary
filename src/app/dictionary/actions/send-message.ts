@@ -47,7 +47,7 @@ interface MultimediaResponse {
 
 interface Summary {
     title: string;
-    summary: string;
+    text: string;
 }
 
 interface Model {
@@ -62,23 +62,26 @@ interface ApiResponse {
 }
 
 export const SendMessage = async (dictionaryId: string | undefined, question: string | string[]) => {
-    if (!dictionaryId) {
+    const resolvedDictionaryId = dictionaryId ?? process.env.NEXT_PUBLIC_DICTIONARY_ID;
+
+    if (!resolvedDictionaryId) {
         return {
             error: 'No se encontró el diccionario. Vuelve atrás y selecciona uno.',
         };
     }
 
     try {
-        const response = await apiFetch<ApiResponse>(`/dictionary/${dictionaryId}/ask`, {
+        const response = await apiFetch<ApiResponse>(`/dictionary/${resolvedDictionaryId}/ask`, {
             method: 'POST',
             body: { question },
         });
 
         if (!response.ok) {
-            const fallbackMessage =
-                response.status === 404
-                    ? 'Chat no disponible: backend no expone endpoint /dictionary/:id/ask'
-                    : response.message;
+            const fallbackMessage = response.status === 404
+                ? 'Chat no disponible: backend no expone endpoint /dictionary/:id/ask'
+                : response.message.includes('NEXT_PUBLIC_API_BASE_URL')
+                    ? response.message
+                    : 'No se pudo procesar la solicitud del chat';
             return { error: fallbackMessage };
         }
 
@@ -90,6 +93,11 @@ export const SendMessage = async (dictionaryId: string | undefined, question: st
         };
     } catch (error) {
         console.error('Error al realizar la solicitud:', error);
+        if (error instanceof Error && error.message === 'Missing NEXT_PUBLIC_API_BASE_URL') {
+            return {
+                error: error.message,
+            };
+        }
         return {
             error: 'No se pudo procesar la solicitud del chat.',
         };
@@ -99,6 +107,9 @@ export const SendMessage = async (dictionaryId: string | undefined, question: st
 // Lógica para manejar la respuesta de la API
 const handleApiResponse = (responseData: any): ApiResponse => {
     try {
+        if (!responseData?.type || typeof responseData?.result !== 'string') {
+            throw new Error('Formato de respuesta inválido');
+        }
 
         // Manejar el caso para "model" con texto simple en result
         if (responseData.type === 'model' && typeof responseData.result === 'string') {
@@ -111,11 +122,11 @@ const handleApiResponse = (responseData: any): ApiResponse => {
             };
         }
 
-        // Verificamos si el resultado contiene un bloque de código con el JSON
-        if (responseData.result.includes('```json')) {
-            // Extraemos el bloque de JSON dentro de la cadena
-            const jsonString = responseData.result.split('```json')[1].split('```')[0].trim();
+        // El backend envuelve el JSON en texto, por eso extraemos el bloque antes de parsear.
+        const jsonString = extractJsonBlock(responseData.result);
 
+        // Verificamos si el resultado contiene un bloque de código con el JSON
+        if (jsonString) {
             // Parseamos el JSON contenido en esa cadena
             const apiData = JSON.parse(jsonString);
 
@@ -126,8 +137,8 @@ const handleApiResponse = (responseData: any): ApiResponse => {
                     type: responseData.type,
                     query: responseData.query,
                     result: {
-                        title: apiData.title || '',
-                        items: apiData.items.map((item: any) => ({
+                        title: apiData.title ?? '',
+                        items: apiData.items?.map((item: any) => ({
                             title: item.title,
                             text: item.text,
                             multimedia: {
@@ -136,7 +147,7 @@ const handleApiResponse = (responseData: any): ApiResponse => {
                                 audios: Array.isArray(item.multimedia?.audios) ? item.multimedia.audios : [],
                                 documents: Array.isArray(item.multimedia?.documents) ? item.multimedia.documents : [],
                             },
-                        })),
+                        })) ?? [],
                     },
                 };
             } else if (responseData.type === 'biography') {
@@ -145,8 +156,8 @@ const handleApiResponse = (responseData: any): ApiResponse => {
                     type: responseData.type,
                     query: responseData.query,
                     result: {
-                        title: apiData.title,
-                        text: apiData.text,
+                        title: apiData.title ?? '',
+                        text: apiData.text ?? '',
                         multimedia: {
                             images: Array.isArray(apiData.multimedia?.images) ? apiData.multimedia.images : [],
                             videos: Array.isArray(apiData.multimedia?.videos) ? apiData.multimedia.videos : [],
@@ -161,9 +172,9 @@ const handleApiResponse = (responseData: any): ApiResponse => {
                     type: responseData.type,
                     query: responseData.query,
                     result: {
-                        title: apiData.title,
-                        text: apiData.text,
-                        items: apiData.items.map((item: any) => ({
+                        title: apiData.title ?? '',
+                        text: apiData.text ?? '',
+                        items: apiData.items?.map((item: any) => ({
                             title: item.title,
                             multimedia: {
                                 images: Array.isArray(item.multimedia?.images) ? item.multimedia.images : [],
@@ -171,20 +182,34 @@ const handleApiResponse = (responseData: any): ApiResponse => {
                                 audios: Array.isArray(item.multimedia?.audios) ? item.multimedia.audios : [],
                                 documents: Array.isArray(item.multimedia?.documents) ? item.multimedia.documents : [],
                             },
-                        })),
+                        })) ?? [],
                     },
                 };
-            }else if (responseData.type === 'summary') {
-                // Procesar el tipo existente "multimedia"
+            } else if (responseData.type === 'multimedia') {
                 return {
                     type: responseData.type,
                     query: responseData.query,
                     result: {
-                        title: apiData.title,
-                        text: apiData.summary,
+                        title: apiData.title ?? '',
+                        multimedia: {
+                            images: Array.isArray(apiData.multimedia?.images) ? apiData.multimedia.images : [],
+                            videos: Array.isArray(apiData.multimedia?.videos) ? apiData.multimedia.videos : [],
+                            audios: Array.isArray(apiData.multimedia?.audios) ? apiData.multimedia.audios : [],
+                            documents: Array.isArray(apiData.multimedia?.documents) ? apiData.multimedia.documents : [],
+                        },
                     },
                 };
-            }else {
+            } else if (responseData.type === 'summary') {
+                // Procesar el tipo existente "summary"
+                return {
+                    type: responseData.type,
+                    query: responseData.query,
+                    result: {
+                        title: apiData.title ?? '',
+                        text: apiData.summary ?? '',
+                    },
+                };
+            } else {
                 throw new Error('Tipo de respuesta no soportado');
             }
         } else {
@@ -194,4 +219,24 @@ const handleApiResponse = (responseData: any): ApiResponse => {
         console.error('Error al procesar la respuesta de la API:', error);
         throw new Error('Error al procesar la respuesta de la API');
     }
+};
+
+const extractJsonBlock = (rawResult: string): string | null => {
+    const fencedMatch = rawResult.match(/```json\s*([\s\S]*?)```/i);
+    if (fencedMatch?.[1]) {
+        return fencedMatch[1].trim();
+    }
+
+    const jsonIndex = rawResult.toLowerCase().indexOf('json');
+    if (jsonIndex === -1) {
+        return null;
+    }
+
+    const braceStart = rawResult.indexOf('{', jsonIndex);
+    const braceEnd = rawResult.lastIndexOf('}');
+    if (braceStart === -1 || braceEnd === -1 || braceEnd <= braceStart) {
+        return null;
+    }
+
+    return rawResult.slice(braceStart, braceEnd + 1).trim();
 };

@@ -8,6 +8,10 @@ type NewsResult = {
 };
 
 export async function getNews(): Promise<NewsResult> {
+    if (process.env.NEXT_PUBLIC_ENABLE_NEWS === 'false') {
+        return { items: [], error: 'Noticias no disponibles' };
+    }
+
     const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY;
 
     if (!apiKey) {
@@ -32,10 +36,10 @@ export async function getNews(): Promise<NewsResult> {
 
         // Filtrar las noticias por fuentes específicas y palabras clave
         const filteredNews = data.articles.filter((article: any) =>
-            article.source.name === "Muyinteresante.com" ||
-            article.source.name === "Noticiaslatam.lat" ||
-            article.title.includes("Venezuela") ||
-            article.description.includes("Venezuela")
+            article?.source?.name === "Muyinteresante.com" ||
+            article?.source?.name === "Noticiaslatam.lat" ||
+            article?.title?.includes("Venezuela") ||
+            article?.description?.includes("Venezuela")
         );
 
         return { items: filteredNews };

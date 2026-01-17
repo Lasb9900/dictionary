@@ -29,6 +29,10 @@ interface ChatProps {
 
 export default function Chat({ dictionaryId }: ChatProps) {
 
+    const resolvedDictionaryId = dictionaryId ?? process.env.NEXT_PUBLIC_DICTIONARY_ID;
+    const missingDictionaryConfig = !dictionaryId && !process.env.NEXT_PUBLIC_DICTIONARY_ID;
+    const isChatEnabled = process.env.NEXT_PUBLIC_ENABLE_CHAT !== 'false';
+
     const [messages, setMessages] = useState<Message[]>([]);
     const [input, setInput] = useState('');
     const messagesContainerRef = useRef<HTMLDivElement | null>(null);
@@ -371,17 +375,25 @@ export default function Chat({ dictionaryId }: ChatProps) {
 
     const handleSend = async (content: string) => {
         if (content.trim()) {
-            if (!dictionaryId) {
-                setChatError('No se encontró el diccionario. Vuelve atrás y selecciona uno.');
+            if (!isChatEnabled) {
+                setChatError('El chat está deshabilitado en este entorno.');
+                return;
+            }
+            if (!resolvedDictionaryId) {
+                setChatError(missingDictionaryConfig
+                    ? 'No se encontró el diccionario. Configura NEXT_PUBLIC_DICTIONARY_ID.'
+                    : 'No se encontró el diccionario. Vuelve atrás y selecciona uno.'
+                );
                 return;
             }
             const newMessage: Message = { role: 'user', content };
             setMessages(prev => [...prev, newMessage]);
             setInput('');
+            setChatError(null);
             setLoading(true); // Inicia el estado de carga
             // Respuesta del servidor
             try {
-                const response = await SendMessage(dictionaryId, content);
+                const response = await SendMessage(resolvedDictionaryId, content);
                 if (response?.error) {
                     setChatError(response.error);
                     return;
@@ -547,9 +559,16 @@ export default function Chat({ dictionaryId }: ChatProps) {
                 {/* Select Theme */}
                 <div className="flex-1 overflow-y-auto">
                     <div className="max-w-[800px] mx-auto w-full h-full">
-                        {!dictionaryId && (
+                        {!resolvedDictionaryId && (
                             <div className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
-                                No se encontró el diccionario. Vuelve atrás y selecciona uno.
+                                {missingDictionaryConfig
+                                    ? 'No se encontró el diccionario. Configura NEXT_PUBLIC_DICTIONARY_ID.'
+                                    : 'No se encontró el diccionario. Vuelve atrás y selecciona uno.'}
+                            </div>
+                        )}
+                        {!isChatEnabled && (
+                            <div className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
+                                El chat está deshabilitado en este entorno.
                             </div>
                         )}
                         {chatError && (
@@ -622,12 +641,12 @@ export default function Chat({ dictionaryId }: ChatProps) {
                                 onChange={(e) => setInput(e.target.value)}
                                 placeholder="Escribe tu mensaje aquí..."
                                 className="w-full h-14 pl-6 pr-12 rounded-full bg-white dark:bg-[#333333]  dark:placeholder:text-[#B3B3B3] text-gray-900 dark:text-[#EAEAEA] border-0 dark:ring-[#4A4A4A] ring-1 ring-inset ring-gray-300"
-                                disabled={loading || !dictionaryId}
+                                disabled={loading || !resolvedDictionaryId || !isChatEnabled}
                             />
                             <button
                                 type="submit"
                                 className="absolute right-3 top-1/2 transform -translate-y-1/2 bg-transparent hover:bg-transparent p-2"
-                                disabled={loading || !dictionaryId}
+                                disabled={loading || !resolvedDictionaryId || !isChatEnabled}
                             >
                                 <Send className="h-5 w-5 text-gray-600 hover:text-gray-800 dark:text-[#B3B3B3] dark:hover:text-[#EAEAEA]" />
                                 <span className="sr-only">Enviar</span>
