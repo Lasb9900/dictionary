@@ -30,7 +30,6 @@ interface ChatProps {
 export default function Chat({ dictionaryId }: ChatProps) {
 
     const resolvedDictionaryId = dictionaryId ?? process.env.NEXT_PUBLIC_DICTIONARY_ID;
-    const missingDictionaryConfig = !dictionaryId && !process.env.NEXT_PUBLIC_DICTIONARY_ID;
     const isChatEnabled = process.env.NEXT_PUBLIC_ENABLE_CHAT !== 'false';
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -380,10 +379,7 @@ export default function Chat({ dictionaryId }: ChatProps) {
                 return;
             }
             if (!resolvedDictionaryId) {
-                setChatError(missingDictionaryConfig
-                    ? 'No se encontró el diccionario. Configura NEXT_PUBLIC_DICTIONARY_ID.'
-                    : 'No se encontró el diccionario. Vuelve atrás y selecciona uno.'
-                );
+                setChatError('No se encontró el diccionario. Vuelve atrás y selecciona uno.');
                 return;
             }
             const newMessage: Message = { role: 'user', content };
@@ -561,9 +557,7 @@ export default function Chat({ dictionaryId }: ChatProps) {
                     <div className="max-w-[800px] mx-auto w-full h-full">
                         {!resolvedDictionaryId && (
                             <div className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
-                                {missingDictionaryConfig
-                                    ? 'No se encontró el diccionario. Configura NEXT_PUBLIC_DICTIONARY_ID.'
-                                    : 'No se encontró el diccionario. Vuelve atrás y selecciona uno.'}
+                                El chat está deshabilitado en este entorno.
                             </div>
                         )}
                         {!isChatEnabled && (
