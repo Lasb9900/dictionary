@@ -2,11 +2,18 @@ export type ApiResult<T> =
     | { ok: true; data: T }
     | { ok: false; message: string; status?: number };
 
-const BASE_API_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '') ?? '';
+export const getApiBaseUrl = () => {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
+    if (!baseUrl) {
+        throw new Error('Missing NEXT_PUBLIC_API_BASE_URL');
+    }
+    return baseUrl;
+};
 
 export const apiUrl = (path: string) => {
+    const baseUrl = getApiBaseUrl();
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-    return `${BASE_API_URL}${normalizedPath}`;
+    return `${baseUrl}${normalizedPath}`;
 };
 
 const isFormData = (value: unknown): value is FormData =>
@@ -16,14 +23,6 @@ export const apiFetch = async <T>(
     path: string,
     options: RequestInit = {}
 ): Promise<ApiResult<T>> => {
-    if (!BASE_API_URL) {
-        return {
-            ok: false,
-            message:
-                'Falta configurar NEXT_PUBLIC_API_BASE_URL para comunicarse con el backend.',
-        };
-    }
-
     const url = apiUrl(path);
     const headers = {
         'Content-Type': 'application/json',

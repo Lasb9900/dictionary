@@ -8,6 +8,10 @@ type NewsResult = {
 };
 
 export async function getNews(): Promise<NewsResult> {
+    if (process.env.NEXT_PUBLIC_ENABLE_NEWS === 'false') {
+        return { items: [], error: 'Noticias no disponibles' };
+    }
+
     const apiKey = process.env.NEXT_PUBLIC_NEWS_API_KEY;
 
     if (!apiKey) {

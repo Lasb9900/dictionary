@@ -5,6 +5,7 @@ import NextAuth from "next-auth/next";
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import { createToken } from "@/utils/config/jwt.handle";
+import { getApiBaseUrl } from "@/src/lib/api";
 
 
 export const authOptions: NextAuthOptions = {
@@ -22,7 +23,7 @@ export const authOptions: NextAuthOptions = {
             async authorize(credentials) {
                 const { email, password } = credentials as { email: string, password: string };
                 try {
-                    const res = await fetch(process.env.API_URL + "/users/auth/login", {
+                    const res = await fetch(`${getApiBaseUrl()}/users/auth/login`, {
                         method: "POST",
                         body: JSON.stringify({
                             email,
@@ -40,6 +41,9 @@ export const authOptions: NextAuthOptions = {
                     const user = await res.json();
                     return user;
                 } catch (error: any) {
+                    if (error.message === "Missing NEXT_PUBLIC_API_BASE_URL") {
+                        throw new Error(error.message);
+                    }
                     if (error.message === "fetch failed") {
                         throw new Error("Error al iniciar sesión.");
                     }

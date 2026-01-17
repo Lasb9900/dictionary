@@ -557,7 +557,7 @@ export default function Chat({ dictionaryId }: ChatProps) {
                     <div className="max-w-[800px] mx-auto w-full h-full">
                         {!resolvedDictionaryId && (
                             <div className="mt-6 rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-amber-900">
-                                No se encontró el diccionario. Vuelve atrás y selecciona uno.
+                                El chat está deshabilitado en este entorno.
                             </div>
                         )}
                         {!isChatEnabled && (

@@ -29,6 +29,9 @@ cp .env.example .env.local
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+NEXT_PUBLIC_DICTIONARY_ID=dev-dictionary
+NEXT_PUBLIC_ENABLE_CHAT=true
+NEXT_PUBLIC_ENABLE_NEWS=true
 NEXT_PUBLIC_NEWS_API_KEY=
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=
@@ -36,11 +39,19 @@ USE_INGESTION=false
 ```
 
 4. Start the frontend with `npm run dev` and navigate to `http://localhost:3000`.
-5. Verify backend connectivity by hitting:
+5. Rutas útiles para validar integración:
 
 ```
 GET ${NEXT_PUBLIC_API_BASE_URL}/cards
+POST ${NEXT_PUBLIC_API_BASE_URL}/users/auth/login
+POST ${NEXT_PUBLIC_API_BASE_URL}/users/auth/register
+POST ${NEXT_PUBLIC_API_BASE_URL}/dictionary/${NEXT_PUBLIC_DICTIONARY_ID}/ask
 ```
+
+6. Rutas del frontend:
+    - `http://localhost:3000/dictionary/${NEXT_PUBLIC_DICTIONARY_ID}/chat`
+    - `http://localhost:3000/dictionary/chat` (usa el fallback de `NEXT_PUBLIC_DICTIONARY_ID`)
+    - `http://localhost:3000/cards`
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 

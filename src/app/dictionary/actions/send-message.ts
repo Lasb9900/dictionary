@@ -93,6 +93,11 @@ export const SendMessage = async (dictionaryId: string | undefined, question: st
         };
     } catch (error) {
         console.error('Error al realizar la solicitud:', error);
+        if (error instanceof Error && error.message === 'Missing NEXT_PUBLIC_API_BASE_URL') {
+            return {
+                error: error.message,
+            };
+        }
         return {
             error: 'No se pudo procesar la solicitud del chat.',
         };

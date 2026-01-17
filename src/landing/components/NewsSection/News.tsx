@@ -7,6 +7,8 @@ import { getNews } from "./actions/get-news";
 const News = () => {
     const [newsItems, setNewsItems] = useState<any[]>([]);
     const [newsUnavailable, setNewsUnavailable] = useState(false);
+    const isNewsEnabled = process.env.NEXT_PUBLIC_ENABLE_NEWS !== 'false';
+    const hasNewsKey = Boolean(process.env.NEXT_PUBLIC_NEWS_API_KEY);
 
     const customNews = {
         title: "LetraScopio: Próximo Lanzamiento con Innovación en Literatura e Inteligencia Artificial",
@@ -22,6 +24,12 @@ const News = () => {
     // Función para traer las noticias usando la server action
     const fetchNewsData = async () => {
         try {
+            if (!isNewsEnabled || !hasNewsKey) {
+                setNewsUnavailable(true);
+                setNewsItems([customNews]);
+                return;
+            }
+
             // Llama a la server action para obtener las noticias filtradas
             const fetchedNews = await getNews();
             setNewsUnavailable(Boolean(fetchedNews.error));
@@ -37,8 +45,14 @@ const News = () => {
     };
 
     useEffect(() => {
-        fetchNewsData(); // Llama a la función que usa la server action
-    }, []);
+        if (isNewsEnabled) {
+            fetchNewsData(); // Llama a la función que usa la server action
+        }
+    }, [isNewsEnabled]);
+
+    if (!isNewsEnabled) {
+        return null;
+    }
 
     return (
         <div className="max-w-[1420px] mx-auto px-4 sm:px-6 lg:px-8 pb-20 pt-18">
