@@ -8,7 +8,7 @@ interface ChatPageProps {
 }
 
 export default function ChatPage({ params }: ChatPageProps) {
-    const dictionaryId = params?.id;
+    const dictionaryId = params?.id ?? process.env.NEXT_PUBLIC_DICTIONARY_ID;
 
     return (
         <div>

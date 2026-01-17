@@ -29,7 +29,9 @@ const News = () => {
             // Combina la noticia personalizada con las noticias obtenidas
             setNewsItems([customNews, ...fetchedNews.items]);
         } catch (error) {
-            console.error('Error al obtener las noticias:', error);
+            if (process.env.NODE_ENV !== 'production') {
+                console.warn('Error al obtener las noticias:', error);
+            }
             setNewsUnavailable(true);
         }
     };

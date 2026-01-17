@@ -32,10 +32,10 @@ export async function getNews(): Promise<NewsResult> {
 
         // Filtrar las noticias por fuentes específicas y palabras clave
         const filteredNews = data.articles.filter((article: any) =>
-            article.source.name === "Muyinteresante.com" ||
-            article.source.name === "Noticiaslatam.lat" ||
-            article.title.includes("Venezuela") ||
-            article.description.includes("Venezuela")
+            article?.source?.name === "Muyinteresante.com" ||
+            article?.source?.name === "Noticiaslatam.lat" ||
+            article?.title?.includes("Venezuela") ||
+            article?.description?.includes("Venezuela")
         );
 
         return { items: filteredNews };
