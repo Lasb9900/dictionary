@@ -10,9 +10,13 @@ import { EllipsisHorizontalIcon } from "@heroicons/react/20/solid"
 import { ButtonWithPointLeft } from "@/src/components/ButtonWithPointLeft/ButtonWithPointLeft";
 import { ObservationText } from '../ObservationText/ObservationText';
 import { NewWorkSheetModal } from "../NewWorkSheetModal/NewWorkSheetModal"; // Importar el modal
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import DeleteModal from "@/src/users/components/DeleteModal/DeleteCardModal";
 import { deleteCard } from "../../actions/delete-worksheet";
+import { autoReviewSheet } from "@/src/app/dashboard/worksheets/actions/auto-review";
+import { autoUploadSheet } from "@/src/app/dashboard/worksheets/actions/auto-upload";
+import { rejectSheet } from "@/src/app/dashboard/worksheets/actions/reject";
+import { markPendingEditSheet } from "@/src/app/dashboard/worksheets/actions/mark-pending-edit";
 import {
     Menu,
     MenuButton,
@@ -78,6 +82,7 @@ export const WorkSheetFile = ({
     const [openEditModal, setOpenEditModal] = useState(false);
     const [editModalData, setEditModalData] = useState<any>(null);
     const [openDeleteModal, setOpenDeleteModal] = useState(false);
+    const [isPending, startTransition] = useTransition();
 
     let filteredActions: WorkSheetAction[];
 
@@ -182,6 +187,63 @@ export const WorkSheetFile = ({
         }
     };
 
+    const handleMissingFields = (missingFields?: string[]) => {
+        if (missingFields && missingFields.length > 0) {
+            alert(`Faltan: ${missingFields.join(', ')}`);
+        }
+    };
+
+    const handleActionError = (message?: string) => {
+        alert(message || 'No se pudo completar la acción');
+    };
+
+    const handlePromptObservation = (label: string) => {
+        const observation = prompt(label);
+        if (!observation || observation.trim().length === 0) {
+            return null;
+        }
+        return observation.trim();
+    };
+
+    const handleIaAction = (action: 'autoReview' | 'autoUpload' | 'reject' | 'markPendingEdit') => {
+        startTransition(() => {
+            void (async () => {
+                let response:
+                    | Awaited<ReturnType<typeof autoReviewSheet>>
+                    | Awaited<ReturnType<typeof autoUploadSheet>>
+                    | Awaited<ReturnType<typeof rejectSheet>>
+                    | Awaited<ReturnType<typeof markPendingEditSheet>>;
+
+                if (action === 'autoReview') {
+                    response = await autoReviewSheet(workSheetType, workSheetId);
+                } else if (action === 'autoUpload') {
+                    response = await autoUploadSheet(workSheetType, workSheetId);
+                } else if (action === 'reject') {
+                    const observation = handlePromptObservation('Ingresa la observación del rechazo');
+                    if (!observation) {
+                        return;
+                    }
+                    response = await rejectSheet(workSheetId, observation);
+                } else {
+                    const observation = handlePromptObservation('Ingresa la observación para reabrir la ficha');
+                    if (!observation) {
+                        return;
+                    }
+                    response = await markPendingEditSheet(workSheetId, observation);
+                }
+
+                handleMissingFields((response as { data?: { missingFields?: string[] } })?.data?.missingFields);
+
+                if (!response.ok) {
+                    handleActionError(response.message);
+                    return;
+                }
+
+                router.refresh();
+            })();
+        });
+    };
+
     return (
         <div className='flex flex-col my-3 lg:my-4'>
             <div className={`flex-col min-w-[308px] max-w-[360px] lg:w-full lg:flex lg:flex-row lg:max-w-none lg:justify-between  bg-white py-4 xl:py-5 px-5 xl:px-6 items-center ${workSheetObservation !== '' ? 'rounded-t-md' : 'rounded-md'}`}>
@@ -198,7 +260,9 @@ export const WorkSheetFile = ({
                             {filteredActions && filteredActions.map((item) => (
                                 <MenuItem key={item.name}>
                                     <div
-                                        className="flex space-x-3 px-3 py-1 text-sm leading-6 "
+                                        role="button"
+                                        className="flex space-x-3 px-3 py-1 text-sm leading-6"
+                                        onClick={() => handleClickActions(workSheetType, item.id, workSheetId, workSheetStatus)}
                                     >
                                         {item.Icon && <item.Icon className={`h-5 w-5 ${item.name === 'Eliminar' ? 'text-red-500' : 'text-d-gray-text'}`} />}
                                         <span className="text-gray-700 data-[focus]:bg-gray-50"> {item.name} </span>
@@ -208,6 +272,50 @@ export const WorkSheetFile = ({
                         </MenuItems>
                     </Menu>
                 </div>
+                {workSheetStatus !== 'Validated' && (
+                    <div className="flex flex-wrap gap-2 pb-3 lg:hidden">
+                        {workSheetStatus === 'Pending Edit' && (
+                            <button
+                                type="button"
+                                disabled={isPending}
+                                onClick={() => handleIaAction('autoReview')}
+                                className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-blue ${isPending ? 'opacity-50' : ''}`}
+                            >
+                                🤖 IA
+                            </button>
+                        )}
+                        {workSheetStatus === 'Pending Review' && (
+                            <>
+                                <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={() => handleIaAction('autoUpload')}
+                                    className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-blue ${isPending ? 'opacity-50' : ''}`}
+                                >
+                                    📤 Publicar
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={() => handleIaAction('reject')}
+                                    className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-red ${isPending ? 'opacity-50' : ''}`}
+                                >
+                                    ❌ Rechazar
+                                </button>
+                            </>
+                        )}
+                        {workSheetStatus === 'Rejected' && (
+                            <button
+                                type="button"
+                                disabled={isPending}
+                                onClick={() => handleIaAction('markPendingEdit')}
+                                className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-gray-text ${isPending ? 'opacity-50' : ''}`}
+                            >
+                                ♻️ Reabrir
+                            </button>
+                        )}
+                    </div>
+                )}
                 <div className="flex flex-col lg:contents">
                     <WorkSheetCreator workSheeetName={workSheetName} workSheeetDate={workSheetDate} workSheeetType={workSheetType} />
                     <div className="flex flex-col">
@@ -227,9 +335,52 @@ export const WorkSheetFile = ({
                     </div>
 
                 </div>
-                <div className="hidden lg:contents">
-
+                <div className="hidden lg:flex items-center gap-3">
                     <ButtonWithPointLeft title={buttonTitle} textColor={buttonTextColor} backgroundColor={buttonBackground} pointColor={buttonPointStyle} />
+                    {workSheetStatus !== 'Validated' && (
+                        <div className="flex items-center gap-2">
+                            {workSheetStatus === 'Pending Edit' && (
+                                <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={() => handleIaAction('autoReview')}
+                                    className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-blue ${isPending ? 'opacity-50' : ''}`}
+                                >
+                                    🤖 IA
+                                </button>
+                            )}
+                            {workSheetStatus === 'Pending Review' && (
+                                <>
+                                    <button
+                                        type="button"
+                                        disabled={isPending}
+                                        onClick={() => handleIaAction('autoUpload')}
+                                        className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-blue ${isPending ? 'opacity-50' : ''}`}
+                                    >
+                                        📤 Publicar
+                                    </button>
+                                    <button
+                                        type="button"
+                                        disabled={isPending}
+                                        onClick={() => handleIaAction('reject')}
+                                        className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-red ${isPending ? 'opacity-50' : ''}`}
+                                    >
+                                        ❌ Rechazar
+                                    </button>
+                                </>
+                            )}
+                            {workSheetStatus === 'Rejected' && (
+                                <button
+                                    type="button"
+                                    disabled={isPending}
+                                    onClick={() => handleIaAction('markPendingEdit')}
+                                    className={`rounded-full px-3 py-1 text-sm font-medium text-white bg-d-gray-text ${isPending ? 'opacity-50' : ''}`}
+                                >
+                                    ♻️ Reabrir
+                                </button>
+                            )}
+                        </div>
+                    )}
                     <Menu as="div" className='relative'>
                         <MenuButton>
                             <EllipsisHorizontalIcon className="w-7 h-7 text-d-gray-text" />
