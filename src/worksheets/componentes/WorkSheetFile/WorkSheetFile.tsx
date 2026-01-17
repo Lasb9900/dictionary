@@ -13,6 +13,12 @@ import { NewWorkSheetModal } from "../NewWorkSheetModal/NewWorkSheetModal"; // I
 import { useState } from "react";
 import DeleteModal from "@/src/users/components/DeleteModal/DeleteCardModal";
 import { deleteCard } from "../../actions/delete-worksheet";
+import { autoReviewWorksheet } from "@/src/app/dashboard/worksheets/actions/auto-review-worksheet";
+import { autoUploadWorksheet } from "@/src/app/dashboard/worksheets/actions/auto-upload-worksheet";
+import { rejectWorksheet } from "@/src/app/dashboard/worksheets/actions/reject-worksheet";
+import { reopenWorksheet } from "@/src/app/dashboard/worksheets/actions/reopen-worksheet";
+import { ObservationModal } from "@/src/components/ObservationModal/ObservationModal";
+import { useAlert } from "@/src/users/context/AlertContext";
 import {
     Menu,
     MenuButton,
@@ -74,10 +80,27 @@ export const WorkSheetFile = ({
     const pathName = usePathname();
     const router = useRouter();
     const isAdmin = session?.user?.roles.includes('admin');
+    const { showAlert } = useAlert();
 
     const [openEditModal, setOpenEditModal] = useState(false);
     const [editModalData, setEditModalData] = useState<any>(null);
     const [openDeleteModal, setOpenDeleteModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [observationModal, setObservationModal] = useState<null | 'reject' | 'reopen'>(null);
+
+    const isPendingEdit = workSheetStatus === 'Pending Edit';
+    const isPendingReview = workSheetStatus === 'Pending Review';
+    const isRejected = workSheetStatus === 'Rejected';
+    const ingestionType =
+        workSheetType === 'AuthorCard'
+            ? 'author'
+            : workSheetType === 'AnthologyCard'
+                ? 'anthology'
+                : workSheetType === 'GroupingCard'
+                    ? 'grouping'
+                    : workSheetType === 'MagazineCard'
+                        ? 'magazine'
+                        : workSheetType;
 
     let filteredActions: WorkSheetAction[];
 
@@ -130,6 +153,105 @@ export const WorkSheetFile = ({
             return false;
         }
     };
+
+    const handleAutoReview = async () => {
+        setIsSubmitting(true);
+        const response = await autoReviewWorksheet(ingestionType, workSheetId, 'gemini');
+        setIsSubmitting(false);
+
+        if (response.ok) {
+            showAlert('Auto-review enviado con Gemini', 'success');
+            router.refresh();
+        } else {
+            showAlert(response.message || 'No se pudo ejecutar el auto-review', 'error');
+        }
+    };
+
+    const handleAutoUpload = async () => {
+        setIsSubmitting(true);
+        const response = await autoUploadWorksheet(ingestionType, workSheetId);
+        setIsSubmitting(false);
+
+        if (response.ok) {
+            showAlert('Auto-upload enviado', 'success');
+            router.refresh();
+        } else {
+            showAlert(response.message || 'No se pudo ejecutar el auto-upload', 'error');
+        }
+    };
+
+    const handleReject = async (observation: string) => {
+        setIsSubmitting(true);
+        const response = await rejectWorksheet(workSheetId, observation);
+        setIsSubmitting(false);
+        setObservationModal(null);
+
+        if (response.ok) {
+            showAlert('Ficha rechazada', 'success');
+            router.refresh();
+        } else {
+            showAlert(response.message || 'No se pudo rechazar la ficha', 'error');
+        }
+    };
+
+    const handleReopen = async (observation: string) => {
+        setIsSubmitting(true);
+        const response = await reopenWorksheet(workSheetId, observation);
+        setIsSubmitting(false);
+        setObservationModal(null);
+
+        if (response.ok) {
+            showAlert('Ficha reabierta', 'success');
+            router.refresh();
+        } else {
+            showAlert(response.message || 'No se pudo reabrir la ficha', 'error');
+        }
+    };
+
+    const renderAiButtons = (className?: string) => (
+        <div className={`flex flex-wrap gap-2 ${className ?? ''}`}>
+            {isPendingEdit && (
+                <button
+                    type="button"
+                    onClick={handleAutoReview}
+                    disabled={isSubmitting}
+                    className="rounded-full bg-d-blue px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                    🤖 Auto-review
+                </button>
+            )}
+            {isPendingReview && (
+                <>
+                    <button
+                        type="button"
+                        onClick={handleAutoUpload}
+                        disabled={isSubmitting}
+                        className="rounded-full bg-d-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                    >
+                        📤 Auto-upload
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setObservationModal('reject')}
+                        disabled={isSubmitting}
+                        className="rounded-full bg-d-red px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                    >
+                        ❌ Rechazar
+                    </button>
+                </>
+            )}
+            {isRejected && (
+                <button
+                    type="button"
+                    onClick={() => setObservationModal('reopen')}
+                    disabled={isSubmitting}
+                    className="rounded-full bg-d-yellow px-3 py-1.5 text-xs font-semibold text-gray-900 disabled:opacity-60"
+                >
+                    ♻️ Reabrir
+                </button>
+            )}
+        </div>
+    );
 
     const handleClickActions = (workSheetType: string, action: string, id: string, status: string) => {
         // Manejando acciones de tipo 'formulario'
@@ -198,7 +320,9 @@ export const WorkSheetFile = ({
                             {filteredActions && filteredActions.map((item) => (
                                 <MenuItem key={item.name}>
                                     <div
-                                        className="flex space-x-3 px-3 py-1 text-sm leading-6 "
+                                        role="button"
+                                        className="flex space-x-3 px-3 py-1 text-sm leading-6"
+                                        onClick={() => handleClickActions(workSheetType, item.id, workSheetId, workSheetStatus)}
                                     >
                                         {item.Icon && <item.Icon className={`h-5 w-5 ${item.name === 'Eliminar' ? 'text-red-500' : 'text-d-gray-text'}`} />}
                                         <span className="text-gray-700 data-[focus]:bg-gray-50"> {item.name} </span>
@@ -207,6 +331,9 @@ export const WorkSheetFile = ({
                             ))}
                         </MenuItems>
                     </Menu>
+                </div>
+                <div className="mb-3 lg:hidden">
+                    {renderAiButtons()}
                 </div>
                 <div className="flex flex-col lg:contents">
                     <WorkSheetCreator workSheeetName={workSheetName} workSheeetDate={workSheetDate} workSheeetType={workSheetType} />
@@ -230,6 +357,7 @@ export const WorkSheetFile = ({
                 <div className="hidden lg:contents">
 
                     <ButtonWithPointLeft title={buttonTitle} textColor={buttonTextColor} backgroundColor={buttonBackground} pointColor={buttonPointStyle} />
+                    {renderAiButtons('lg:ml-4')}
                     <Menu as="div" className='relative'>
                         <MenuButton>
                             <EllipsisHorizontalIcon className="w-7 h-7 text-d-gray-text" />
@@ -270,6 +398,25 @@ export const WorkSheetFile = ({
 
             {workSheetObservation && (
                 <ObservationText observation={workSheetObservation} />
+            )}
+
+            {observationModal === 'reject' && (
+                <ObservationModal
+                    title="Rechazar ficha"
+                    description="Agrega una observación para rechazar la ficha."
+                    confirmLabel="Rechazar"
+                    onClose={() => setObservationModal(null)}
+                    onConfirm={handleReject}
+                />
+            )}
+            {observationModal === 'reopen' && (
+                <ObservationModal
+                    title="Reabrir ficha"
+                    description="Agrega una observación para reabrir la ficha."
+                    confirmLabel="Reabrir"
+                    onClose={() => setObservationModal(null)}
+                    onConfirm={handleReopen}
+                />
             )}
         </div>
     )

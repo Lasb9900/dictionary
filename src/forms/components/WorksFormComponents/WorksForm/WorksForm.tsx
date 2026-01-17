@@ -18,6 +18,7 @@ import { DebugFormikValues } from '../../DebugFormikValues/DebugFormikValues'
 import { ExpandableDescriptionMultimedia } from '../ExpandableDescriptionMultimedia/ExpandableDescriptionMultimedia'
 import { useAlert } from '@/src/users/context/AlertContext'
 import { saveAuthorForm } from '@/src/app/dashboard/forms/authorForm/actions/save-author-form'
+import { createWorkAutoAuthor } from '@/src/app/dashboard/forms/authorForm/actions/create-work-auto-author'
 
 
 
@@ -113,7 +114,7 @@ export const WorksForm = () => {
     }
 
 
-    const handleAddWork = () => {
+    const handleAddWork = async () => {
         if (!work.title) return;
 
         if (editingIndex !== null) {
@@ -124,6 +125,14 @@ export const WorksForm = () => {
             setFieldValue('works', updatedWorks);
             setEditingIndex(null); // Resetear el índice de edición
         } else {
+            const autoAuthorResponse = await createWorkAutoAuthor({ authorId: id, work });
+            if (autoAuthorResponse.ok) {
+                if (autoAuthorResponse.data?.authorCreated) {
+                    showAlert("Se creó ficha del autor automáticamente", "success");
+                }
+            } else if (autoAuthorResponse.message !== 'TODO_ENDPOINT') {
+                showAlert(autoAuthorResponse.message || "No se pudo crear la obra en el backend", "error");
+            }
             // Agregar una nueva obra
             const updatedWorks = [...values.works, work];
             setFieldValue('works', updatedWorks);

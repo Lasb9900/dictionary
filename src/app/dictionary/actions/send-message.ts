@@ -1,8 +1,6 @@
 'use server';
 
 import { apiFetch } from '@/src/lib/api';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/utils/config/authOptions';
 
 // Tipo común para multimedia
 interface Multimedia {
@@ -34,33 +32,31 @@ interface ApiResponse {
   type: ApiType;
   query: string;
   result: any;
+  provider?: string;
+  sources?: Source[];
 }
 
-export const SendMessage = async (
-  dictionaryId: string | undefined,
-  question: string | string[],
-) => {
-  const resolvedDictionaryId = dictionaryId ?? process.env.NEXT_PUBLIC_DICTIONARY_ID;
+interface Source {
+  cardId?: string;
+  cardType?: string;
+  title?: string;
+  url?: string;
+}
 
-  if (!resolvedDictionaryId) {
-    return { error: 'No se encontró el diccionario. Vuelve atrás y selecciona uno.' };
-  }
+interface SendMessagePayload {
+  question: string | string[];
+  cardId?: string;
+  cardType?: string;
+}
 
-  // ✅ token del backend (session.accessToken)
-  const session = await getServerSession(authOptions);
-  const accessToken = (session as any)?.accessToken as string | undefined;
-
-  if (!accessToken) {
-    return { error: 'Sesión inválida o expirada. Inicia sesión nuevamente.' };
-  }
-
-  const response = await apiFetch<ApiResponse>(`/dictionary/${resolvedDictionaryId}/ask`, {
+export const SendMessage = async ({ question, cardId, cardType }: SendMessagePayload) => {
+  const response = await apiFetch<ApiResponse>('/dictionary/ask', {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
+    body: {
+      question,
+      cardId,
+      cardType,
     },
-    // ✅ PASA OBJETO: apiFetch lo stringifea por dentro
-    body: { question } as any,
   });
 
   if (!response.ok) {
@@ -81,10 +77,18 @@ export const SendMessage = async (
 };
 
 // Soporta backend NUEVO (result objeto) y backend viejo (result string con JSON embebido)
-const handleApiResponse = (responseData: any): { type: ApiType; query: string; result: any } => {
+const handleApiResponse = (
+  responseData: any,
+): { type: ApiType; query: string; result: any; provider?: string; sources?: Source[] } => {
   if (!responseData?.type) throw new Error('Formato de respuesta inválido: falta type');
 
   const type: ApiType = responseData.type;
+  const provider = responseData.provider ?? responseData?.result?.provider ?? 'Gemini';
+  const sources = Array.isArray(responseData.sources)
+    ? responseData.sources
+    : Array.isArray(responseData?.result?.sources)
+      ? responseData.result.sources
+      : undefined;
 
   // model puede venir como string u objeto
   if (type === 'model') {
@@ -94,7 +98,7 @@ const handleApiResponse = (responseData: any): { type: ApiType; query: string; r
         : JSON.stringify(responseData.result ?? {}, null, 2);
 
     const result: Model = { text };
-    return { type, query: responseData.query ?? '', result };
+    return { type, query: responseData.query ?? '', result, provider, sources };
   }
 
   // ✅ BACKEND NUEVO: result es objeto { dictionaryId, provider, answer, multimedia }
@@ -117,7 +121,7 @@ const handleApiResponse = (responseData: any): { type: ApiType; query: string; r
         title: 'Respuesta',
         text: answerText,
       };
-      return { type, query: responseData.query ?? '', result };
+      return { type, query: responseData.query ?? '', result, provider, sources };
     }
 
     // fallback para otros types por si luego los activas
@@ -129,6 +133,8 @@ const handleApiResponse = (responseData: any): { type: ApiType; query: string; r
         text: answerText,
         multimedia,
       },
+      provider,
+      sources,
     };
   }
 
@@ -147,11 +153,11 @@ const handleApiResponse = (responseData: any): { type: ApiType; query: string; r
       title: apiData.title ?? '',
       text: apiData.summary ?? apiData.text ?? '',
     };
-    return { type, query: responseData.query ?? '', result };
+    return { type, query: responseData.query ?? '', result, provider, sources };
   }
 
   // Si usas otros tipos legacy, aquí irían (tu código anterior)
-  return { type, query: responseData.query ?? '', result: apiData };
+  return { type, query: responseData.query ?? '', result: apiData, provider, sources };
 };
 
 const extractJsonBlock = (rawResult: string): string | null => {
