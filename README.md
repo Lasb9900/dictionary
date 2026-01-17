@@ -28,7 +28,7 @@ cp .env.example .env.local
 3. Configure the required frontend environment variables:
 
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080/api
+NEXT_PUBLIC_API_URL=http://localhost:8080/api
 NEXT_PUBLIC_DICTIONARY_ID=dev-dictionary
 NEXT_PUBLIC_ENABLE_CHAT=true
 NEXT_PUBLIC_ENABLE_NEWS=true
@@ -42,10 +42,10 @@ USE_INGESTION=false
 5. Rutas útiles para validar integración:
 
 ```
-GET ${NEXT_PUBLIC_API_BASE_URL}/cards
-POST ${NEXT_PUBLIC_API_BASE_URL}/users/auth/login
-POST ${NEXT_PUBLIC_API_BASE_URL}/users/auth/register
-POST ${NEXT_PUBLIC_API_BASE_URL}/dictionary/${NEXT_PUBLIC_DICTIONARY_ID}/ask
+GET ${NEXT_PUBLIC_API_URL}/cards
+POST ${NEXT_PUBLIC_API_URL}/users/auth/login
+POST ${NEXT_PUBLIC_API_URL}/users/auth/register
+POST ${NEXT_PUBLIC_API_URL}/dictionary/${NEXT_PUBLIC_DICTIONARY_ID}/ask
 ```
 
 6. Rutas del frontend:

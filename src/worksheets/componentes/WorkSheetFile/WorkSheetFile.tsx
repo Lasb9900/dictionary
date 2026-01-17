@@ -19,6 +19,7 @@ import { rejectWorksheet } from "@/src/app/dashboard/worksheets/actions/reject-w
 import { reopenWorksheet } from "@/src/app/dashboard/worksheets/actions/reopen-worksheet";
 import { ObservationModal } from "@/src/components/ObservationModal/ObservationModal";
 import { useAlert } from "@/src/users/context/AlertContext";
+import { getStoredAiProvider } from "@/src/ai/ai-provider";
 import {
     Menu,
     MenuButton,
@@ -61,6 +62,14 @@ const workSheetsActions: WorkSheetAction[] = [
     { id: '04', name: 'Eliminar', Icon: TrashIcon, role: 'admin' },
 ];
 
+const SUPPORTED_INGESTION_TYPES = new Set([
+    'AuthorCard',
+    'AnthologyCard',
+    'GroupingCard',
+    'MagazineCard',
+    'MythAndLegendCard',
+]);
+
 export const WorkSheetFile = ({
     workSheetObservation,
     workSheetStatus,
@@ -91,16 +100,7 @@ export const WorkSheetFile = ({
     const isPendingEdit = workSheetStatus === 'Pending Edit';
     const isPendingReview = workSheetStatus === 'Pending Review';
     const isRejected = workSheetStatus === 'Rejected';
-    const ingestionType =
-        workSheetType === 'AuthorCard'
-            ? 'author'
-            : workSheetType === 'AnthologyCard'
-                ? 'anthology'
-                : workSheetType === 'GroupingCard'
-                    ? 'grouping'
-                    : workSheetType === 'MagazineCard'
-                        ? 'magazine'
-                        : workSheetType;
+    const isAiSupported = SUPPORTED_INGESTION_TYPES.has(workSheetType);
 
     let filteredActions: WorkSheetAction[];
 
@@ -156,11 +156,12 @@ export const WorkSheetFile = ({
 
     const handleAutoReview = async () => {
         setIsSubmitting(true);
-        const response = await autoReviewWorksheet(ingestionType, workSheetId, 'gemini');
+        const provider = getStoredAiProvider();
+        const response = await autoReviewWorksheet(workSheetType, workSheetId, provider);
         setIsSubmitting(false);
 
         if (response.ok) {
-            showAlert('Auto-review enviado con Gemini', 'success');
+            showAlert(`Auto-review enviado con ${provider === 'gemini' ? 'Gemini' : 'Ollama'}`, 'success');
             router.refresh();
         } else {
             showAlert(response.message || 'No se pudo ejecutar el auto-review', 'error');
@@ -169,7 +170,8 @@ export const WorkSheetFile = ({
 
     const handleAutoUpload = async () => {
         setIsSubmitting(true);
-        const response = await autoUploadWorksheet(ingestionType, workSheetId);
+        const provider = getStoredAiProvider();
+        const response = await autoUploadWorksheet(workSheetType, workSheetId, provider);
         setIsSubmitting(false);
 
         if (response.ok) {
@@ -210,7 +212,7 @@ export const WorkSheetFile = ({
 
     const renderAiButtons = (className?: string) => (
         <div className={`flex flex-wrap gap-2 ${className ?? ''}`}>
-            {isPendingEdit && (
+            {isPendingEdit && isAiSupported && (
                 <button
                     type="button"
                     onClick={handleAutoReview}
@@ -220,25 +222,25 @@ export const WorkSheetFile = ({
                     🤖 Auto-review
                 </button>
             )}
+            {isPendingReview && isAiSupported && (
+                <button
+                    type="button"
+                    onClick={handleAutoUpload}
+                    disabled={isSubmitting}
+                    className="rounded-full bg-d-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                    📤 Auto-upload
+                </button>
+            )}
             {isPendingReview && (
-                <>
-                    <button
-                        type="button"
-                        onClick={handleAutoUpload}
-                        disabled={isSubmitting}
-                        className="rounded-full bg-d-green px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                    >
-                        📤 Auto-upload
-                    </button>
-                    <button
-                        type="button"
-                        onClick={() => setObservationModal('reject')}
-                        disabled={isSubmitting}
-                        className="rounded-full bg-d-red px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-                    >
-                        ❌ Rechazar
-                    </button>
-                </>
+                <button
+                    type="button"
+                    onClick={() => setObservationModal('reject')}
+                    disabled={isSubmitting}
+                    className="rounded-full bg-d-red px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                >
+                    ❌ Rechazar
+                </button>
             )}
             {isRejected && (
                 <button
@@ -249,6 +251,14 @@ export const WorkSheetFile = ({
                 >
                     ♻️ Reabrir
                 </button>
+            )}
+            {!isAiSupported && (isPendingEdit || isPendingReview) && (
+                <span
+                    className="rounded-full bg-gray-100 px-3 py-1.5 text-xs font-semibold text-gray-500"
+                    title="IA no disponible para este tipo"
+                >
+                    IA no disponible para este tipo
+                </span>
             )}
         </div>
     );

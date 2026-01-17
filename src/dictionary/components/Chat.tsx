@@ -1,15 +1,17 @@
 'use client'
 
-import { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Send, PenSquare, Leaf, Brain, Lightbulb, Moon, Sun, ArrowLeft, UserPen, Bot, FileText, Pencil, Image } from 'lucide-react';
 import { useTheme } from "next-themes";
 import Loader from './Loader';
 import { ShieldCheckIcon } from '@heroicons/react/24/outline';
 import ChatResponseDisplay from './ChatResponseDisplay';
 import { SendMessage } from '@/src/app/dictionary/actions/send-message';
-import { AlertProvider } from '@/src/users/context/AlertContext';
+import { AlertProvider, useAlert } from '@/src/users/context/AlertContext';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import AiProviderToggle from '@/src/components/AiProviderToggle';
+import { AiProvider, getStoredAiProvider } from '@/src/ai/ai-provider';
 
 // Define el tipo para cada mensaje
 interface Message {
@@ -37,7 +39,7 @@ interface ChatProps {
     cardType?: string;
 }
 
-export default function Chat({ cardId, cardType }: ChatProps) {
+function ChatContent({ cardId, cardType }: ChatProps) {
     const isChatEnabled = process.env.NEXT_PUBLIC_ENABLE_CHAT !== 'false';
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -50,6 +52,8 @@ export default function Chat({ cardId, cardType }: ChatProps) {
     const [chatError, setChatError] = useState<string | null>(null);
     const [useCardContext, setUseCardContext] = useState(Boolean(cardId));
     const [name, setName] = useState('Investigador')
+    const [aiProvider, setAiProvider] = useState<AiProvider>(getStoredAiProvider());
+    const { showAlert } = useAlert();
     const prueba = "json\n{\n  \"title\": \"Teresa Coraspe\",\n  \"text\": \"Teresa Coraspe vivió en Ciudad Bolívar durante la segunda mitad del siglo XX y la primera del siglo XXI.\",\n  \"multimedia\": {\n    \"images\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa Foto de Teresa en su casa \"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Teresa en su casa\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1727805937/Teresa_Coraspe_ciwt8q.jpg\",\n        \"description\": \"Foto de Tereszxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxz xxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxx xxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxxxxxxxxxxxx xxxxxxxxxx xxxxxxxxxxxxxxxxx xxxxxxxxxxxxxxx xa en su casa\"\n      }\n    ],\n    \"videos\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Entrevista a Teresa Coraspe sobre su obra literaria\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Documental sobre la vida de Teresa Coraspe\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Conferencia de Teresa sobre poesía en Ciudad Bolívar\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Evento en el cual Teresa discute sus escritos\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728086505/Dictionary/Authors/l7x5gzqarvfsq1llhee2.mp4\",\n        \"description\": \"Teresa hablando sobre los desafíos de ser una autora en su tiempo\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728052102/WhatsApp_Video_2024-07-29_at_09.07.13_iwwdjo.mp4\",\n        \"description\": \"Video homenaje a Teresa y su legado literario\"\n      }\n    ],\n    \"audios\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/ysuegjov5yxq8nik2yh1.ogg\",\n        \"description\": \"Entrevista sobre la vida personal de Teresa Coraspe\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/dmhvuwri2p9fhzlhs1kr.ogg\",\n        \"description\": \"Teresa leyendo un poema de su autoría\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/e0cfvuttkknxcqitp2js.ogg\",\n        \"description\": \"Discurso de Teresa sobre la importancia de la poesía en la sociedad\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/video/upload/v1728092963/Dictionary/Authors/bq9lme77hwablsngrief.ogg\",\n        \"description\": \"Reflexión sobre la vida de los escritores de su época\"\n      }\n    ],\n    \"documents\": [\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/image/upload/v1728150241/Dictionary/Authors/fi7lh5jkdgjvwo6vjutu.pdf\",\n        \"description\": \"Biografía de Teresa Coraspe en formato PDF\"\n      },\n      {\n        \"link\": \"https://res.cloudinary.com/dlhvylz4p/raw/upload/v1728150348/Dictionary/Authors/eyrddmcg9ynjawnzt3qi.docx\",\n        \"description\": \"Manuscrito de Teresa Coraspe en formato Word\"\n      }\n    ]\n  }\n}\n";
 
     type ResponseType = "biography" | "comparison" | "list" | "similarity" | "multimedia" | "model" | "summary";
@@ -398,9 +402,11 @@ export default function Chat({ cardId, cardType }: ChatProps) {
                     question: content,
                     cardId: useCardContext ? cardId : undefined,
                     cardType: useCardContext ? cardType : undefined,
+                    provider: aiProvider,
                 });
                 if (response?.error) {
                     setChatError(response.error);
+                    showAlert(response.error, 'error');
                     return;
                 }
                 if (response) {
@@ -420,7 +426,9 @@ export default function Chat({ cardId, cardType }: ChatProps) {
                 }
             } catch (error) {
                 console.error("Error fetching response:", error);
-                setChatError('No se pudo procesar la solicitud del chat.');
+                const errorMessage = 'No se pudo procesar la solicitud del chat.';
+                setChatError(errorMessage);
+                showAlert(errorMessage, 'error');
             } finally {
                 setLoading(false);
             }
@@ -518,8 +526,7 @@ export default function Chat({ cardId, cardType }: ChatProps) {
     if (!mounted) return null;
 
     return (
-        <AlertProvider>
-            <div className="flex flex-col h-screen w-full mx-auto bg-white dark:bg-[#2D2D2D] text-gray-900 dark:text-gray-100">
+        <div className="flex flex-col h-screen w-full mx-auto bg-white dark:bg-[#2D2D2D] text-gray-900 dark:text-gray-100">
                 <div className="relative flex flex-col pl-2 max-sm:h-[60px] h-[80px] py-[2px] bg-cover bg-center bg-[url('/assets/bg-header-chat.png')] dark:bg-[url('/assets/header-oscuro.png')]">
                     <div className="flex-shrink-0 flex items-center">
                         <div className="relative flex flex-col pl-2 py-[2px] max-w-full">
@@ -683,17 +690,20 @@ export default function Chat({ cardId, cardType }: ChatProps) {
                 </div>
                 <div className="p-4  dark:border-gray-700 bg-white dark:bg-[#2D2D2D]">
                     <div className="mb-5 max-w-[800px] mx-auto w-full ">
-                        {hasCardContext && (
-                            <label className="mb-3 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
-                                <input
-                                    type="checkbox"
-                                    checked={useCardContext}
-                                    onChange={(event) => setUseCardContext(event.target.checked)}
-                                    className="h-4 w-4 rounded border-gray-300 text-d-blue focus:ring-d-blue"
-                                />
-                                Usar contexto de la ficha actual
-                            </label>
-                        )}
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                            <AiProviderToggle value={aiProvider} onChange={setAiProvider} />
+                            {hasCardContext && (
+                                <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-gray-300">
+                                    <input
+                                        type="checkbox"
+                                        checked={useCardContext}
+                                        onChange={(event) => setUseCardContext(event.target.checked)}
+                                        className="h-4 w-4 rounded border-gray-300 text-d-blue focus:ring-d-blue"
+                                    />
+                                    Usar contexto de la ficha actual
+                                </label>
+                            )}
+                        </div>
                         <form onSubmit={(e) => { e.preventDefault(); handleSend(input); }} className="relative">
                             <input
                                 value={input}
@@ -715,8 +725,15 @@ export default function Chat({ cardId, cardType }: ChatProps) {
                     <p className='flex items-center justify-center text-xs text-gray-500 dark:text-gray-400'>
                         Powered by&nbsp;<span className="font-semibold"> UCAB Guayana</span>
                     </p>
-                </div>
             </div>
+        </div>
+    );
+}
+
+export default function Chat(props: ChatProps) {
+    return (
+        <AlertProvider>
+            <ChatContent {...props} />
         </AlertProvider>
     );
 }

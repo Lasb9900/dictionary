@@ -50,7 +50,7 @@ export const authOptions: NextAuthOptions = {
           const user = await res.json();
           return user;
         } catch (error: any) {
-          if (error?.message === "Missing NEXT_PUBLIC_API_BASE_URL") {
+          if (error?.message === "Missing NEXT_PUBLIC_API_URL") {
             throw new Error(error.message);
           }
           if (error?.message === "fetch failed") {

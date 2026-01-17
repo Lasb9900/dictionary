@@ -3,9 +3,9 @@ export type ApiResult<T> =
     | { ok: false; message: string; status?: number };
 
 export const getApiBaseUrl = () => {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL?.replace(/\/$/, '');
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
     if (!baseUrl) {
-        throw new Error('Missing NEXT_PUBLIC_API_BASE_URL');
+        throw new Error('Missing NEXT_PUBLIC_API_URL');
     }
     return baseUrl;
 };
@@ -24,10 +24,10 @@ export const apiFetch = async <T>(
     options: RequestInit = {}
 ): Promise<ApiResult<T>> => {
     const url = apiUrl(path);
-    const headers = {
-        'Content-Type': 'application/json',
-        ...(options.headers ?? {}),
-    };
+    const headers = new Headers(options.headers ?? {});
+    if (!headers.has('Content-Type') && !isFormData(options.body)) {
+        headers.set('Content-Type', 'application/json');
+    }
     const body =
         options.body && !isFormData(options.body) && typeof options.body !== 'string'
             ? JSON.stringify(options.body)
@@ -37,6 +37,7 @@ export const apiFetch = async <T>(
         ...options,
         headers,
         body,
+        credentials: options.credentials ?? 'include',
     });
 
     let responseData: T | { message?: string } | null = null;

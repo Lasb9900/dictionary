@@ -15,6 +15,7 @@ import { autoUploadWorksheet } from "@/src/app/dashboard/worksheets/actions/auto
 import { rejectWorksheet } from "@/src/app/dashboard/worksheets/actions/reject-worksheet";
 import { reopenWorksheet } from "@/src/app/dashboard/worksheets/actions/reopen-worksheet";
 import { ObservationModal } from "@/src/components/ObservationModal/ObservationModal";
+import { getStoredAiProvider } from "@/src/ai/ai-provider";
 
 const steps =
     [
@@ -88,16 +89,7 @@ export const AuthorProgressBar = () => {
         loadMeta();
     }, [id]);
 
-    const ingestionType =
-        worksheetType === 'AuthorCard'
-            ? 'author'
-            : worksheetType === 'AnthologyCard'
-                ? 'anthology'
-                : worksheetType === 'GroupingCard'
-                    ? 'grouping'
-                    : worksheetType === 'MagazineCard'
-                        ? 'magazine'
-                        : worksheetType ?? 'author';
+    const ingestionType = worksheetType ?? 'AuthorCard';
 
     const isPendingEdit = worksheetStatus === 'Pending Edit';
     const isPendingReview = worksheetStatus === 'Pending Review';
@@ -106,10 +98,11 @@ export const AuthorProgressBar = () => {
     const handleAutoReview = async () => {
         if (!id) return;
         setIsSubmitting(true);
-        const response = await autoReviewWorksheet(ingestionType, id.toString(), 'gemini');
+        const provider = getStoredAiProvider();
+        const response = await autoReviewWorksheet(ingestionType, id.toString(), provider);
         setIsSubmitting(false);
         if (response.ok) {
-            showAlert('Auto-review enviado con Gemini', 'success');
+            showAlert(`Auto-review enviado con ${provider === 'gemini' ? 'Gemini' : 'Ollama'}`, 'success');
             router.refresh();
         } else {
             showAlert(response.message || 'No se pudo ejecutar el auto-review', 'error');
@@ -119,7 +112,8 @@ export const AuthorProgressBar = () => {
     const handleAutoUpload = async () => {
         if (!id) return;
         setIsSubmitting(true);
-        const response = await autoUploadWorksheet(ingestionType, id.toString());
+        const provider = getStoredAiProvider();
+        const response = await autoUploadWorksheet(ingestionType, id.toString(), provider);
         setIsSubmitting(false);
         if (response.ok) {
             showAlert('Auto-upload enviado', 'success');

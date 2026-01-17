@@ -4,7 +4,7 @@ import { apiFetch } from '@/src/lib/api';
 import { authOptions } from '@/utils/config/authOptions';
 import { getServerSession } from 'next-auth';
 
-export const autoReviewWorksheet = async (type: string, id: string, provider = 'gemini') => {
+export const autoReviewWorksheet = async (type: string, id: string, provider?: string) => {
     try {
         const session = await getServerSession(authOptions);
 

@@ -4,7 +4,7 @@ import { apiFetch } from '@/src/lib/api';
 import { authOptions } from '@/utils/config/authOptions';
 import { getServerSession } from 'next-auth';
 
-export const autoUploadWorksheet = async (type: string, id: string) => {
+export const autoUploadWorksheet = async (type: string, id: string, provider?: string) => {
     try {
         const session = await getServerSession(authOptions);
 
@@ -17,6 +17,7 @@ export const autoUploadWorksheet = async (type: string, id: string) => {
 
         const response = await apiFetch(`/ingestion/${type}/${id}/auto-upload`, {
             method: 'POST',
+            headers: provider ? { 'x-ai-provider': provider } : undefined,
         });
 
         if (!response.ok) {
