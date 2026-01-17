@@ -1,76 +1,104 @@
 "use client";
 
-import { AuthForm } from '../../../forms/components/AuthForm/AuthForm';
-import { signIn } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState, useTransition } from 'react';
-import { useSession } from "next-auth/react";
+import { AuthForm } from "../../../forms/components/AuthForm/AuthForm";
+import { signIn, useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useTransition } from "react";
 
-const  LoginForm: React.FC = () => {
-
+const LoginForm: React.FC = () => {
   const { data: session, status } = useSession();
-  const userRoles = session?.user?.roles || [];
+
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const resolveDashboardByRoles = (roles: string[]) => {
+    if (roles.includes("admin")) return "/dashboard/worksheets/validatedSheets";
+    if (roles.includes("editor") && !roles.includes("reviewer"))
+      return "/dashboard/worksheets/sheetsToComplete";
+    if (roles.includes("reviewer") && !roles.includes("editor"))
+      return "/dashboard/worksheets/sheetsToReview";
+    if (roles.includes("editor") && roles.includes("reviewer"))
+      return "/dashboard/worksheets/sheetsToComplete";
+    return "/dashboard/searcher"; // fallback seguro
+  };
 
   const handleSubmit = async (values: any) => {
     setError(null);
+
     startTransition(async () => {
-      const res = await signIn('credentials', {
+      // si next-auth te manda callbackUrl, úsalo
+      const callbackUrl = searchParams.get("callbackUrl") || undefined;
+
+      const res = await signIn("credentials", {
         email: values.email,
         password: values.password,
-        redirect: false
+        redirect: false,
+        callbackUrl: callbackUrl ?? undefined,
       });
-      console.log(res);
 
       if (res?.error) {
         setError(res.error);
+        return;
       }
+
+      // ✅ si login fue OK, redirige ya (sin esperar a useSession)
+      // si viene callbackUrl, úsalo; si no, manda al dashboard por defecto
+      const roles = (session as any)?.user?.roles ?? [];
+const target = resolveDashboardByRoles(roles);
+
+      router.push(target);
+      router.refresh(); // fuerza a que server components/middleware lean la cookie
     });
   };
 
+  // ✅ respaldo: si ya está autenticado (por ejemplo recarga), redirige por roles
   useEffect(() => {
-    if (status === 'authenticated' && session?.user?.roles) {
-      const userRoles = session.user.roles;
+    if (status !== "authenticated") return;
 
-      // Lógica de redirección basada en roles
-      if (userRoles.includes('admin')) {
-        router.push("/dashboard/worksheets/validatedSheets");
-      } else if (userRoles.includes('editor') && !userRoles.includes('reviewer')) {
-        router.push("/dashboard/worksheets/sheetsToComplete");
-      } else if (userRoles.includes('reviewer') && !userRoles.includes('editor')) {
-        router.push("/dashboard/worksheets/sheetsToReview");
-      } else if (userRoles.includes('editor') && userRoles.includes('reviewer')) {
-        router.push("/dashboard/worksheets/sheetsToComplete");
-      }
-    }
-  }, [status, session, router]);
-  
+    const roles = (session as any)?.user?.roles ?? [];
+    const target = resolveDashboardByRoles(roles);
+
+    router.push(target);
+    router.refresh();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [status]);
+
   return (
     <div className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Background image with a dark overlay */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"
         style={{ backgroundImage: `url('/assets/tepuis.webp')` }}
       >
-        {/* Dark overlay to darken the background image */}
         <div className="absolute inset-0 bg-black opacity-50"></div>
       </div>
 
-      {/* Form container */}
       <div className="relative z-10 w-full max-w-sm mx-auto my-auto">
         <AuthForm
           formTitle="Iniciar Sesión"
           inputs={[
-            { id: 'email', name: 'email', type: 'email', labelText: 'Correo electrónico', placeholder: '' },
-            { id: 'password', name: 'password', type: 'password', labelText: 'Contraseña', placeholder: '' },
+            {
+              id: "email",
+              name: "email",
+              type: "email",
+              labelText: "Correo electrónico",
+              placeholder: "",
+            },
+            {
+              id: "password",
+              name: "password",
+              type: "password",
+              labelText: "Contraseña",
+              placeholder: "",
+            },
           ]}
           buttonText="Ingresar"
           linkQuestion="¿No tienes una cuenta?"
           linkText="Regístrate"
           linkHref="/auth/register"
-          initialValues={{ email: '', password: '' }}
+          initialValues={{ email: "", password: "" }}
           onSubmit={handleSubmit}
           error={error}
           isPending={isPending}
